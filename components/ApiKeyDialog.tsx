@@ -19,7 +19,7 @@ const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({ onContinue }) => {
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Clé API payante requise pour Veo</h2>
         <p className="text-gray-300 mb-6 text-sm md:text-base">
-          Veo est un modèle de génération vidéo payant. Pour utiliser cette fonctionnalité, veuillez sélectionner une clé API associée à un projet Google Cloud payant avec facturation activée.
+          Veo est un modèle de génération vidéo payant. Pour utiliser cette fonctionnalité, veuillez configurer une clé API avec facturation activée.
         </p>
         <p className="text-gray-400 mb-8 text-xs md:text-sm">
           Pour plus d'informations, voir{' '}

@@ -193,7 +193,7 @@ const CreatorStudio: React.FC<CreatorStudioProps> = ({
       console.error(err);
       const msg = err.message || JSON.stringify(err);
       if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
-          setError("⚠️ Quota API atteint (Erreur 429). Google limite le nombre de générations par minute. Veuillez patienter 1 à 2 minutes avant de réessayer.");
+          setError("⚠️ Quota API atteint (Erreur 429). Limite de générations par minute atteinte. Veuillez patienter 1 à 2 minutes avant de réessayer.");
       } else {
           setError(`${defaultMsg}: ${msg.substring(0, 100)}...`);
       }

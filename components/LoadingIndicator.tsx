@@ -22,7 +22,7 @@ const loadingMessages = [
   "Passage en vitesse lumière...",
   "Ne vous inquiétez pas, les pixels sont gentils.",
   "Récolte de tiges de bananes nano...",
-  "Prière à l'étoile Gemini...",
+  "Invocation de l'IA générative...",
   "Rédaction de votre discours pour les Oscars..."
 ];
 

@@ -228,7 +228,7 @@ const App: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-lg shadow-indigo-500/20 shadow-lg"></div>
           <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            Veo Studio
+            ChrisStudio
           </h1>
         </div>
         <button onClick={toggleSidebar} className="p-2 text-gray-400 hover:text-white">
@@ -255,7 +255,7 @@ const App: React.FC = () => {
         <div className="hidden md:flex mb-8 px-2 items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-lg shadow-indigo-500/20 shadow-lg"></div>
           <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            Veo Studio
+            ChrisStudio
           </h1>
         </div>
 
