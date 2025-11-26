@@ -48,6 +48,7 @@ import {
   MusicTrack
 } from '../types';
 import {generateVideo, generateVideoPlan, generateThumbnailImage, generateSpeech, enhancePrompt} from '../services/geminiService';
+import { processVideoComposition } from '../services/videoService';
 import LoadingIndicator from './LoadingIndicator';
 
 interface CreatorStudioProps {
@@ -90,6 +91,11 @@ const CreatorStudio: React.FC<CreatorStudioProps> = ({
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Final Video Composition State
+  const [isComposing, setIsComposing] = useState(false);
+  const [compositionProgress, setCompositionProgress] = useState('');
+  const [composedVideoUrl, setComposedVideoUrl] = useState<string | null>(null);
 
   // Batch Export State
   const [exportQueue, setExportQueue] = useState<GeneratedAsset[]>([]);
@@ -337,6 +343,46 @@ const CreatorStudio: React.FC<CreatorStudioProps> = ({
       }
   };
 
+  const handleComposeVideo = async () => {
+    if (!metadata || !generatedVideoUrl) return;
+
+    setIsComposing(true);
+    setCompositionProgress("Initializing FFmpeg...");
+    setError(null);
+
+    try {
+        const selectedChannel = channels.find(c => c.id === selectedChannelId);
+        const currentAsset: GeneratedAsset = {
+            id: 'composition-asset',
+            metadata,
+            videoUrl: generatedVideoUrl,
+            thumbnailImage,
+            voiceoverUrl: generatedAudioUrl,
+            voiceoverBlob: generatedAudioBlob,
+            timestamp: new Date(),
+            channelName: selectedChannel?.name
+        };
+
+        const selectedMusic = musicLibrary.find(m => m.id === selectedMusicId);
+
+        const { url } = await processVideoComposition({
+            asset: currentAsset,
+            introOutro: introOutroSettings,
+            watermark: watermarkSettings,
+            music: selectedMusic,
+            progressCallback: setCompositionProgress,
+        });
+
+        setComposedVideoUrl(url);
+
+    } catch (err: any) {
+        console.error("Composition failed", err);
+        setError(`Échec de l'assemblage vidéo: ${err.message}`);
+    } finally {
+        setIsComposing(false);
+    }
+  };
+
   const handleSaveAsTemplate = () => {
       const newTemplate: Template = {
           id: crypto.randomUUID(),
@@ -511,11 +557,14 @@ ${asset.metadata.script}
     }
   };
 
-  if (loading) {
+  if (loading || isComposing) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-4 text-center">
         <LoadingIndicator />
-        <p className="mt-4 text-indigo-300 animate-pulse text-sm md:text-base">{loadingText}</p>
+        <p className="mt-4 text-indigo-300 animate-pulse text-sm md:text-base">
+            {isComposing ? compositionProgress : loadingText}
+        </p>
+        {isComposing && <p className="text-xs text-gray-500 mt-2">Cette opération peut prendre plusieurs minutes. Veuillez garder cet onglet ouvert.</p>}
       </div>
     );
   }
@@ -834,49 +883,69 @@ ${asset.metadata.script}
                 <div className="w-full flex flex-col lg:flex-row gap-8 items-start">
                     {/* Video Player & Audio */}
                     <div className="w-full lg:w-2/3 space-y-6">
-                        {/* Synced Player */}
-                        <div className={`w-full bg-black rounded-xl overflow-hidden shadow-2xl border border-gray-800 relative ${format === 'shorts' ? 'aspect-[9/16] max-w-xs md:max-w-sm mx-auto' : 'aspect-video'}`}>
-                            {generatedVideoUrl ? (
-                                <>
-                                    <video
-                                        ref={videoRef}
-                                        src={generatedVideoUrl}
-                                        controls={!isPlayingSynced}
+                        {/* Final Composed Video Player */}
+                        {composedVideoUrl ? (
+                             <div className="w-full space-y-4">
+                                <div className={`w-full bg-black rounded-xl overflow-hidden shadow-2xl border border-green-500/50 ${format === 'shorts' ? 'aspect-[9/16] max-w-xs md:max-w-sm mx-auto' : 'aspect-video'}`}>
+                                     <video
+                                        src={composedVideoUrl}
+                                        controls
                                         playsInline
                                         className="w-full h-full object-contain"
-                                    />
-                                    {watermarkSettings?.enabled && watermarkSettings.dataUrl && (
-                                        <img 
-                                            src={watermarkSettings.dataUrl}
-                                            alt="Watermark"
-                                            className={`absolute pointer-events-none object-contain z-10 max-w-[50%] ${getWatermarkPositionClasses(watermarkSettings.position)}`}
-                                            style={
-                                                {
-                                                    '--watermark-opacity': watermarkSettings.opacity,
-                                                    '--watermark-scale': `${watermarkSettings.scale * 100}%`,
-                                                    opacity: 'var(--watermark-opacity)',
-                                                    width: 'var(--watermark-scale)'
-                                                } as React.CSSProperties
-                                            }
-                                        />
+                                     />
+                                </div>
+                                <div className="text-center p-3 bg-green-900/20 border border-green-500/30 rounded-lg">
+                                    <h4 className="font-bold text-green-300">Vidéo Finale Prête</h4>
+                                    <p className="text-xs text-gray-400">Votre vidéo a été assemblée avec tous les éléments.</p>
+                                </div>
+                             </div>
+                        ) : (
+                             <>
+                                {/* Synced Player */}
+                                <div className={`w-full bg-black rounded-xl overflow-hidden shadow-2xl border border-gray-800 relative ${format === 'shorts' ? 'aspect-[9/16] max-w-xs md:max-w-sm mx-auto' : 'aspect-video'}`}>
+                                    {generatedVideoUrl ? (
+                                        <>
+                                            <video
+                                                ref={videoRef}
+                                                src={generatedVideoUrl}
+                                                controls={!isPlayingSynced}
+                                                playsInline
+                                                className="w-full h-full object-contain"
+                                            />
+                                            {watermarkSettings?.enabled && watermarkSettings.dataUrl && (
+                                                <img
+                                                    src={watermarkSettings.dataUrl}
+                                                    alt="Watermark"
+                                                    className={`absolute pointer-events-none object-contain z-10 max-w-[50%] ${getWatermarkPositionClasses(watermarkSettings.position)}`}
+                                                    style={
+                                                        {
+                                                            '--watermark-opacity': watermarkSettings.opacity,
+                                                            '--watermark-scale': `${watermarkSettings.scale * 100}%`,
+                                                            opacity: 'var(--watermark-opacity)',
+                                                            width: 'var(--watermark-scale)'
+                                                        } as React.CSSProperties
+                                                    }
+                                                />
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-600">Aucune vidéo</div>
                                     )}
-                                </>
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-600">Aucune vidéo</div>
-                            )}
-                        </div>
+                                </div>
 
-                        {/* Sync Controls */}
-                        {generatedVideoUrl && generatedAudioUrl && (
-                            <div className="flex justify-center">
-                                <button 
-                                    onClick={toggleSyncedPlayback}
-                                    className={`px-8 py-3 rounded-full font-bold flex items-center gap-2 transition-all shadow-lg ${isPlayingSynced ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-500'}`}
-                                >
-                                    {isPlayingSynced ? <SquareIcon className="w-5 h-5 fill-current" /> : <PlayIcon className="w-5 h-5 fill-current" />}
-                                    {isPlayingSynced ? 'STOP' : 'LECTURE SYNCHRONISÉE (Vidéo + Voix + Musique)'}
-                                </button>
-                            </div>
+                                {/* Sync Controls */}
+                                {generatedVideoUrl && generatedAudioUrl && (
+                                    <div className="flex justify-center">
+                                        <button
+                                            onClick={toggleSyncedPlayback}
+                                            className={`px-8 py-3 rounded-full font-bold flex items-center gap-2 transition-all shadow-lg ${isPlayingSynced ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-500'}`}
+                                        >
+                                            {isPlayingSynced ? <SquareIcon className="w-5 h-5 fill-current" /> : <PlayIcon className="w-5 h-5 fill-current" />}
+                                            {isPlayingSynced ? 'STOP' : 'LECTURE SYNCHRONISÉE (Prévisualisation)'}
+                                        </button>
+                                    </div>
+                                )}
+                             </>
                         )}
 
                         {/* Hidden Audio Elements for Sync */}
@@ -952,7 +1021,25 @@ ${asset.metadata.script}
                                 Actions
                             </h3>
                             
-                            {/* Publish Assistant Button */}
+                            {composedVideoUrl ? (
+                                <a
+                                    href={composedVideoUrl}
+                                    download={`${metadata?.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`}
+                                    className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 mb-3 transition-colors shadow-lg shadow-green-900/20 text-sm md:text-base"
+                                >
+                                    <DownloadIcon className="w-5 h-5" />
+                                    Télécharger la Vidéo Finale
+                                </a>
+                            ) : (
+                                <button
+                                    onClick={handleComposeVideo}
+                                    className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 mb-3 transition-colors shadow-lg shadow-green-900/20 text-sm md:text-base"
+                                >
+                                    <WandIcon className="w-5 h-5" />
+                                    Assembler la Vidéo Finale
+                                </button>
+                            )}
+
                             <button
                                 onClick={() => setShowPublishModal(true)}
                                 className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 mb-3 transition-colors shadow-lg shadow-red-900/20 text-sm md:text-base"
@@ -974,7 +1061,7 @@ ${asset.metadata.script}
                                 className="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg flex items-center justify-center gap-2 mb-3 transition-colors text-sm md:text-base"
                             >
                                 <DownloadIcon className="w-5 h-5" />
-                                Télécharger le pack unique
+                                Télécharger le pack d'assets
                             </button>
                         </div>
                         
@@ -989,7 +1076,7 @@ ${asset.metadata.script}
                         </div>
 
                         <button 
-                            onClick={() => {setStep(1); setMetadata(null); setGeneratedVideoUrl(null); setThumbnailImage(null); setGeneratedAudioUrl(null);}}
+                            onClick={() => {setStep(1); setMetadata(null); setGeneratedVideoUrl(null); setThumbnailImage(null); setGeneratedAudioUrl(null); setComposedVideoUrl(null);}}
                             className="w-full py-3 border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 rounded-lg transition-colors text-sm"
                         >
                             Annuler & Créer nouveau
