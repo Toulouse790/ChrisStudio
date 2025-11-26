@@ -138,7 +138,7 @@ const App: React.FC = () => {
   // Check for API key on initial load
   useEffect(() => {
     const checkApiKey = () => {
-      const storedApiKey = localStorage.getItem('GEMINI_API_KEY');
+      const storedApiKey = localStorage.getItem('AI_API_KEY');
       if (!storedApiKey) {
         setShowApiKeyDialog(true);
       }

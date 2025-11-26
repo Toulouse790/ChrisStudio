@@ -13,8 +13,7 @@ export default defineConfig(({ mode }) => {
         react(),
       ],
       define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+        'process.env.API_KEY': JSON.stringify(env.AI_API_KEY),
         'process.env.PEXELS_API_KEY': JSON.stringify(env.PEXELS_API_KEY)
       },
       resolve: {

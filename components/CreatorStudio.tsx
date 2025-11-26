@@ -47,7 +47,7 @@ import {
   Template,
   MusicTrack
 } from '../types';
-import {generateVideo, generateVideoPlan, generateThumbnailImage, generateSpeech, enhancePrompt} from '../services/geminiService';
+import {generateVideo, generateVideoPlan, generateThumbnailImage, generateSpeech, enhancePrompt} from '../services/aiService';
 import { processVideoComposition } from '../services/videoService';
 import LoadingIndicator from './LoadingIndicator';
 

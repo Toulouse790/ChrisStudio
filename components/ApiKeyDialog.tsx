@@ -17,35 +17,18 @@ const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({ onContinue }) => {
         <div className="bg-indigo-600/20 p-4 rounded-full mb-6">
           <KeyIcon className="w-10 h-10 md:w-12 md:h-12 text-indigo-400" />
         </div>
-        <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Clé API payante requise pour Veo</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Clé API requise</h2>
         <p className="text-gray-300 mb-6 text-sm md:text-base">
-          Veo est un modèle de génération vidéo payant. Pour utiliser cette fonctionnalité, veuillez configurer une clé API avec facturation activée.
+          ChrisStudio utilise des modèles IA avancés pour la génération vidéo. Veuillez configurer votre clé API pour commencer.
         </p>
         <p className="text-gray-400 mb-8 text-xs md:text-sm">
-          Pour plus d'informations, voir{' '}
-          <a
-            href="https://ai.google.dev/gemini-api/docs/billing"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-indigo-400 hover:underline font-medium"
-          >
-            comment activer la facturation
-          </a>{' '}
-          et{' '}
-          <a
-            href="https://ai.google.dev/gemini-api/docs/pricing#veo-3"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-indigo-400 hover:underline font-medium"
-          >
-            tarification Veo
-          </a>.
+          La génération vidéo IA est un service payant à l'utilisation. Les coûts dépendent du modèle et de la durée des vidéos générées.
         </p>
         <button
           onClick={onContinue}
           className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors text-base md:text-lg"
         >
-          Continuer pour sélectionner une clé API payante
+          Configurer ma clé API
         </button>
       </div>
     </div>

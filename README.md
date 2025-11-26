@@ -30,7 +30,7 @@
 
 3. Configurer la clé API :
    - Créez un fichier `.env.local`
-   - Ajoutez : `GEMINI_API_KEY=votre_clé_api`
+   - Ajoutez : `AI_API_KEY=votre_clé_api`
 
 4. Lancer le serveur de développement :
    ```bash
