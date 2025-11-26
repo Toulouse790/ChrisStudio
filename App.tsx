@@ -1,8 +1,8 @@
 
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
-*/
+ * ChrisStudio - Plateforme de Création Vidéo IA
+ * © 2025 Toulouse790. Tous droits réservés.
+ */
 import React, {useState, useEffect} from 'react';
 import ApiKeyDialog from './components/ApiKeyDialog';
 import {
@@ -19,7 +19,7 @@ import AssetsSettings from './components/AssetsSettings';
 import TemplateManager from './components/TemplateManager';
 import {View, WatermarkSettings, IntroOutroSettings, Channel, GeneratedAsset, Template, MusicTrack, AppSettings} from './types';
 
-const STORAGE_KEY = 'veo_studio_settings_v1';
+const STORAGE_KEY = 'chrisstudio_settings_v2';
 
 const DEFAULT_CHANNELS: Channel[] = [
     {
@@ -54,30 +54,30 @@ const DEFAULT_CHANNELS: Channel[] = [
 const DEFAULT_TEMPLATES: Template[] = [
     {
         id: 'tpl_1',
-        name: 'Série Documentaire Historique',
-        description: 'Format chronologique pour L\'Odyssée. Parfait pour raconter l\'évolution étape par étape.',
+        name: 'What If Scientifique',
+        description: 'Format hypothèse scientifique avec suspense et révélations progressives.',
+        channelId: 'etsi',
+        niche: 'Et si la Terre s\'arrêtait de tourner',
+        format: 'long-form',
+        language: 'fr',
+        isSeries: false
+    },
+    {
+        id: 'tpl_2',
+        name: 'Documentaire Préhistoire',
+        description: 'Format chronologique pour raconter l\'évolution humaine étape par étape.',
         channelId: 'odyssee',
-        niche: 'L\'évolution de l\'homme',
+        niche: 'Les premiers Homo Sapiens',
         format: 'long-form',
         language: 'fr',
         isSeries: true
     },
     {
-        id: 'tpl_2',
-        name: 'Short Mystère Rapide',
-        description: 'Format court et percutant pour les énigmes non résolues.',
-        channelId: 'archives',
-        niche: 'Objets anachroniques',
-        format: 'shorts',
-        language: 'fr',
-        isSeries: false
-    },
-    {
         id: 'tpl_3',
-        name: 'Concept Futuriste',
-        description: 'Exploration d\'hypothèses scientifiques audacieuses.',
-        channelId: 'science',
-        niche: 'Colonisation spatiale',
+        name: 'Affaire Non Résolue',
+        description: 'Format enquête True Crime avec suspense et analyse des indices.',
+        channelId: 'dossiers',
+        niche: 'Jack l\'Eventreur',
         format: 'long-form',
         language: 'fr',
         isSeries: false
@@ -138,19 +138,10 @@ const App: React.FC = () => {
 
   // Check for API key on initial load
   useEffect(() => {
-    const checkApiKey = async () => {
-      if (window.aistudio) {
-        try {
-          if (!(await window.aistudio.hasSelectedApiKey())) {
-            setShowApiKeyDialog(true);
-          }
-        } catch (error) {
-          console.warn(
-            'aistudio.hasSelectedApiKey check failed, assuming no key selected.',
-            error,
-          );
-          setShowApiKeyDialog(true);
-        }
+    const checkApiKey = () => {
+      const storedApiKey = localStorage.getItem('GEMINI_API_KEY');
+      if (!storedApiKey) {
+        setShowApiKeyDialog(true);
       }
     };
     checkApiKey();
@@ -158,9 +149,6 @@ const App: React.FC = () => {
 
   const handleApiKeyDialogContinue = async () => {
     setShowApiKeyDialog(false);
-    if (window.aistudio) {
-      await window.aistudio.openSelectKey();
-    }
   };
 
   const handleProjectCreated = (newProject: GeneratedAsset) => {
