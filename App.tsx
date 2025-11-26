@@ -1,4 +1,3 @@
-
 /**
  * ChrisStudio - Plateforme de Création Vidéo IA
  * © 2025 Toulouse790. Tous droits réservés.
@@ -23,31 +22,31 @@ const STORAGE_KEY = 'chrisstudio_settings_v2';
 
 const DEFAULT_CHANNELS: Channel[] = [
     {
-      id: 'odyssee',
-      name: "L’Odyssée des Premiers Hommes",
-      theme: "Préhistoire, évolution humaine, vie quotidienne des premiers hommes, archéologie.",
-      color: "text-amber-500",
-      connected: false,
-      rpm: 0.90, 
-      avgViews: 15000
-    },
-    {
-      id: 'archives',
-      name: "Les Archives du Mystère",
-      theme: "Mystères historiques, énigmes, civilisations perdues, secrets non résolus.",
-      color: "text-purple-500",
-      connected: false,
-      rpm: 0.75, 
-      avgViews: 25000
-    },
-    {
-      id: 'science',
-      name: "Et Si… La Science!",
-      theme: "Scénarios 'Et si', expériences de pensée, vulgarisation scientifique, futurisme.",
+      id: 'etsi',
+      name: "Et Si...",
+      theme: "Scénarios alternatifs, hypothèses historiques et scientifiques, expériences de pensée.",
       color: "text-cyan-500",
       connected: false,
-      rpm: 1.50, 
-      avgViews: 12000
+      rpm: 0, 
+      avgViews: 0
+    },
+    {
+      id: 'odyssee',
+      name: "L'Odyssée Humaine",
+      theme: "Histoire de l'humanité, grandes civilisations, moments clés de notre évolution.",
+      color: "text-amber-500",
+      connected: false,
+      rpm: 0, 
+      avgViews: 0
+    },
+    {
+      id: 'dossiers',
+      name: "Dossiers Classifiés",
+      theme: "Mystères, affaires non résolues, secrets historiques, enquêtes fascinantes.",
+      color: "text-purple-500",
+      connected: false,
+      rpm: 0, 
+      avgViews: 0
     }
 ];
 
