@@ -12,6 +12,16 @@
 - 🎵 Mixage audio (voix + musique)
 - 💧 Watermarks et intro/outro
 - 📝 Sous-titres automatiques
+- 📅 Calendrier éditorial avec suggestions IA
+- 🔗 **Upload automatique sur YouTube** (OAuth2)
+
+## 📺 Chaînes Configurées
+
+| Chaîne | Thème | YouTube |
+|--------|-------|---------|
+| **Et Si...** | Scénarios alternatifs, hypothèses | [@EtSi-official](https://youtube.com/@EtSi-official) |
+| **L'Odyssée Humaine** | Histoire de l'humanité | [@LOdysseeHumaine](https://youtube.com/@LOdysseeHumaine) |
+| **Dossiers Classifiés** | Mystères et affaires non résolues | [@DossiersClassifies](https://youtube.com/@DossiersClassifies) |
 
 ## 💻 Installation
 
@@ -28,14 +38,51 @@
    npm install
    ```
 
-3. Configurer la clé API :
+3. Configurer les clés API :
    - Créez un fichier `.env.local`
-   - Ajoutez : `AI_API_KEY=votre_clé_api`
+   - Ajoutez vos clés :
+     ```env
+     # Clé API pour la génération de contenu IA
+     API_KEY=votre_clé_api_gemini
+     
+     # (Optionnel) YouTube Data API pour l'upload automatique
+     VITE_YOUTUBE_CLIENT_ID=votre_client_id
+     VITE_YOUTUBE_CLIENT_SECRET=votre_client_secret
+     ```
 
 4. Lancer le serveur de développement :
    ```bash
    npm run dev
    ```
+
+## 🔐 Configuration YouTube API (Optionnel)
+
+Pour activer l'upload automatique sur YouTube :
+
+1. **Créer un projet Google Cloud** :
+   - Allez sur [console.cloud.google.com](https://console.cloud.google.com)
+   - Créez un nouveau projet
+
+2. **Activer YouTube Data API v3** :
+   - APIs & Services > Library
+   - Recherchez "YouTube Data API v3"
+   - Cliquez sur "Enable"
+
+3. **Configurer l'écran de consentement OAuth** :
+   - APIs & Services > OAuth consent screen
+   - Type: External
+   - Ajoutez les scopes :
+     - `youtube.upload`
+     - `youtube.readonly`
+     - `youtube.force-ssl`
+
+4. **Créer les credentials OAuth 2.0** :
+   - APIs & Services > Credentials
+   - Create Credentials > OAuth client ID
+   - Application type: Web application
+   - Authorized redirect URIs: `https://votre-domaine.vercel.app/oauth/callback`
+
+5. **Copier les credentials dans `.env.local`**
 
 ## 📦 Déploiement
 

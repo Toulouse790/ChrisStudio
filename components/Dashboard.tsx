@@ -6,17 +6,20 @@
 import React from 'react';
 import {View, Channel, GeneratedAsset} from '../types';
 import {ArrowRightIcon, PlusIcon, VideoIcon, FilmIcon} from './icons';
+import {YouTubeConnectionButton} from './YouTubeConnection';
 
 interface DashboardProps {
     onViewChange: (view: View) => void;
     channels: Channel[];
     projects: GeneratedAsset[];
+    onChannelConnectionChange?: (channelId: string, connected: boolean) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
   onViewChange,
   channels,
-  projects
+  projects,
+  onChannelConnectionChange
 }) => {
   const totalVideos = projects.length;
 
@@ -86,10 +89,23 @@ const Dashboard: React.FC<DashboardProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
             {channels.map(channel => (
                 <div key={channel.id} className="bg-[#161616] p-5 rounded-xl border border-gray-800 hover:border-gray-600 transition-colors relative overflow-hidden">
-                    <div className={`text-sm font-bold mb-2 ${channel.color}`}>{channel.name}</div>
-                    <p className="text-xs text-gray-500 h-10 line-clamp-2 mb-4">{channel.theme}</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`text-sm font-bold ${channel.color}`}>{channel.name}</div>
+                      {channel.youtubeHandle && (
+                        <span className="text-[10px] text-gray-500 font-mono">{channel.youtubeHandle}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 h-10 line-clamp-2 mb-3">{channel.theme}</p>
                     
-                    <div className="flex justify-between items-end mt-2 pt-2 border-t border-gray-800">
+                    {/* YouTube Connection */}
+                    <div className="mb-3 pb-3 border-b border-gray-800">
+                      <YouTubeConnectionButton 
+                        channel={channel}
+                        onConnectionChange={(id, connected) => onChannelConnectionChange?.(id, connected)}
+                      />
+                    </div>
+                    
+                    <div className="flex justify-between items-end">
                         <div className="text-xs text-gray-400">
                              <span className="block text-[10px] uppercase">RPM Moyen</span>
                              <span className="font-mono">{channel.rpm} €</span>
@@ -132,9 +148,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                   key={project.id}
                   className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-[#161616] hover:bg-[#1f1f1f] rounded-xl border border-gray-800 transition-colors group gap-4">
                   <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="w-16 h-9 bg-black rounded-lg overflow-hidden flex-shrink-0 border border-gray-800">
+                    <div className="w-16 h-9 bg-black rounded-lg overflow-hidden shrink-0 border border-gray-800">
                          {project.thumbnailImage ? (
-                             <img src={project.thumbnailImage} className="w-full h-full object-cover" />
+                             <img src={project.thumbnailImage} alt={project.metadata.title} className="w-full h-full object-cover" />
                          ) : (
                              <div className="w-full h-full flex items-center justify-center text-gray-600"><VideoIcon className="w-4 h-4"/></div>
                          )}

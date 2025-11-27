@@ -18,6 +18,7 @@ import CreatorStudio from './components/CreatorStudio';
 import AssetsSettings from './components/AssetsSettings';
 import TemplateManager from './components/TemplateManager';
 import ContentCalendarView from './components/ContentCalendar';
+import OAuthCallback from './components/OAuthCallback';
 import {View, WatermarkSettings, IntroOutroSettings, Channel, GeneratedAsset, Template, MusicTrack, AppSettings, ContentCalendar, CalendarItem} from './types';
 
 const STORAGE_KEY = 'chrisstudio_settings_v2';
@@ -103,6 +104,7 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
   const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isOAuthCallback, setIsOAuthCallback] = useState(false);
   
   // State
   const [channels, setChannels] = useState<Channel[]>(DEFAULT_CHANNELS);
@@ -156,6 +158,11 @@ const App: React.FC = () => {
       }
     };
     checkApiKey();
+    
+    // Check if this is an OAuth callback
+    if (window.location.pathname === '/oauth/callback') {
+      setIsOAuthCallback(true);
+    }
   }, []);
 
   const handleApiKeyDialogContinue = async () => {
@@ -168,6 +175,12 @@ const App: React.FC = () => {
 
   const handleUpdateChannels = (updatedChannels: Channel[]) => {
     setChannels(updatedChannels);
+  };
+
+  const handleChannelConnectionChange = (channelId: string, connected: boolean) => {
+    setChannels(prev => prev.map(ch => 
+      ch.id === channelId ? { ...ch, connected } : ch
+    ));
   };
   
   const handleUseTemplate = (template: Template) => {
@@ -240,6 +253,16 @@ const App: React.FC = () => {
   );
 
   return (
+    <>
+      {/* OAuth Callback Handler */}
+      {isOAuthCallback && (
+        <OAuthCallback 
+          onSuccess={() => setIsOAuthCallback(false)}
+          onError={() => setIsOAuthCallback(false)}
+        />
+      )}
+      
+      {!isOAuthCallback && (
     <div className="h-screen bg-black text-gray-200 flex font-sans overflow-hidden">
       {showApiKeyDialog && (
         <ApiKeyDialog onContinue={handleApiKeyDialogContinue} />
@@ -335,6 +358,7 @@ const App: React.FC = () => {
                 onViewChange={handleNavClick} 
                 channels={channels} 
                 projects={projects}
+                onChannelConnectionChange={handleChannelConnectionChange}
             />
         )}
         {currentView === View.CALENDAR && (
@@ -378,6 +402,8 @@ const App: React.FC = () => {
         )}
       </main>
     </div>
+      )}
+    </>
   );
 };
 
