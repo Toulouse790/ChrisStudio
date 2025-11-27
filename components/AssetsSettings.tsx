@@ -6,6 +6,7 @@
 import React, { useRef, useState } from 'react';
 import { UploadCloudIcon, XMarkIcon, FilmIcon, YoutubeIcon, CheckCircleIcon, MusicIcon, TrashIcon } from './icons';
 import { WatermarkSettings, WatermarkPosition, IntroOutroSettings, Channel, MusicTrack } from '../types';
+import { YouTubeConnectionButton } from './YouTubeConnection';
 
 interface AssetsSettingsProps {
   watermarkSettings: WatermarkSettings;
@@ -134,14 +135,6 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
   };
 
   // --- Channel Handlers ---
-  const handleConnectChannel = (channelId: string) => {
-      // Simulate OAuth delay
-      const updated = channels.map(c => 
-        c.id === channelId ? { ...c, connected: !c.connected } : c
-      );
-      onUpdateChannels(updated);
-  };
-
   const handleSaveHandle = (channelId: string) => {
     const updated = channels.map(c => 
         c.id === channelId ? { ...c, youtubeHandle: tempHandle } : c
@@ -199,21 +192,15 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                              )}
                          </div>
                          
-                         <button 
-                            onClick={() => handleConnectChannel(channel.id)}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-2 self-start sm:self-center ${
-                                channel.connected 
-                                ? 'bg-green-900/30 text-green-400 border border-green-900' 
-                                : 'bg-gray-700 hover:bg-gray-600 text-white'
-                            }`}
-                         >
-                             {channel.connected ? (
-                                 <>
-                                    <CheckCircleIcon className="w-3 h-3" />
-                                    Connecté
-                                 </>
-                             ) : 'Connecter'}
-                         </button>
+                         <YouTubeConnectionButton 
+                           channel={channel}
+                           onConnectionChange={(id, connected) => {
+                             const updated = channels.map(c => 
+                               c.id === id ? { ...c, connected } : c
+                             );
+                             onUpdateChannels(updated);
+                           }}
+                        />
                      </div>
                  ))}
              </div>

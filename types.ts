@@ -3,7 +3,6 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import {Video} from '@google/genai';
 
 export enum AppState {
   IDLE,
@@ -19,54 +18,7 @@ export enum View {
   ASSETS = 'assets',
 }
 
-export enum VeoModel {
-  VEO_FAST = 'veo-3.1-fast-generate-preview',
-  VEO = 'veo-3.1-generate-preview',
-}
-
-export enum AspectRatio {
-  LANDSCAPE = '16:9',
-  PORTRAIT = '9:16',
-}
-
-export enum Resolution {
-  P720 = '720p',
-  P1080 = '1080p',
-}
-
-export enum GenerationMode {
-  TEXT_TO_VIDEO = 'Text to Video',
-  FRAMES_TO_VIDEO = 'Frames to Video',
-  REFERENCES_TO_VIDEO = 'References to Video',
-  EXTEND_VIDEO = 'Extend Video',
-}
-
-export interface ImageFile {
-  file: File;
-  base64: string;
-}
-
-export interface VideoFile {
-  file: File;
-  base64: string;
-}
-
-export interface GenerateVideoParams {
-  prompt: string;
-  model: VeoModel;
-  aspectRatio: AspectRatio;
-  resolution: Resolution;
-  mode: GenerationMode;
-  startFrame?: ImageFile | null;
-  endFrame?: ImageFile | null;
-  referenceImages?: ImageFile[];
-  styleImage?: ImageFile | null;
-  inputVideo?: VideoFile | null;
-  inputVideoObject?: Video | null;
-  isLooping?: boolean;
-}
-
-// --- New Types for Studio ---
+// --- Channel Types ---
 
 export interface Channel {
   id: string; // internal ID
@@ -93,36 +45,12 @@ export interface YouTubeMetadata {
   communityPost?: string; // Text for a YouTube Community Post
 }
 
-export interface Project {
-  id: string;
-  niche: string;
-  format: 'shorts' | 'long-form';
-  language: 'en' | 'fr';
-  status: 'draft' | 'planned' | 'ready' | 'published';
-  metadata?: YouTubeMetadata;
-  videoUrl?: string;
-  dateCreated: Date;
-  scheduledDate?: Date;
-}
-
-export interface Template {
-  id: string;
-  name: string;
-  description: string;
-  channelId: string;
-  niche: string;
-  format: 'shorts' | 'long-form';
-  language: 'en' | 'fr';
-  isSeries: boolean;
-  visualStyle?: string;
-}
-
 export interface GeneratedAsset {
   id: string;
   metadata: YouTubeMetadata;
   videoUrl: string;
   thumbnailImage: string | null;
-  voiceoverUrl?: string | null; // Blob URL for the WAV file
+  voiceoverUrl?: string | null;
   voiceoverBlob?: Blob | null;
   timestamp: Date;
   channelName?: string;
