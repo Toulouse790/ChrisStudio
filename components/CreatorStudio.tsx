@@ -672,7 +672,7 @@ ${asset.metadata.script}
                  >
                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${isSeriesMode ? 'left-5' : 'left-1'}`}></div>
                  </button>
-                 <div className="flex-grow">
+                 <div className="grow">
                      <span className="text-sm font-medium text-white flex items-center gap-2">
                          <ListOrderedIcon className="w-4 h-4" />
                          Mode Série / Chronologie
@@ -689,7 +689,7 @@ ${asset.metadata.script}
 
              {/* Style Selector */}
              <div>
-                 <label className="block text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                 <label className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
                      <WandIcon className="w-4 h-4 text-purple-400" />
                      Style Visuel
                  </label>
@@ -748,7 +748,7 @@ ${asset.metadata.script}
             <button
               onClick={handleGeneratePlan}
               disabled={!niche}
-              className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4 transition-all active:scale-[0.99]">
+              className="w-full py-4 bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4 transition-all active:scale-[0.99]">
               <SparklesIcon className="w-5 h-5" />
               Générer le plan IA
             </button>
@@ -784,7 +784,7 @@ ${asset.metadata.script}
             </div>
 
              {/* Community Post Section */}
-             <div className="bg-gradient-to-r from-orange-900/20 to-red-900/20 p-3 rounded border border-orange-900/50">
+             <div className="bg-linear-to-r from-orange-900/20 to-red-900/20 p-3 rounded border border-orange-900/50">
                  <label className="text-xs text-orange-400 uppercase font-bold flex items-center gap-1">
                      <UsersIcon className="w-3 h-3"/> Post Communauté (Teasing)
                  </label>
@@ -793,7 +793,7 @@ ${asset.metadata.script}
 
              <div>
                 <label className="text-xs text-gray-500 uppercase font-semibold">Prompt Visuel (Anglais)</label>
-                <p className="text-indigo-300 text-xs md:text-sm mt-1 p-2 bg-indigo-900/10 border border-indigo-900/30 rounded font-mono break-words">{metadata.visualPrompt}</p>
+                <p className="text-indigo-300 text-xs md:text-sm mt-1 p-2 bg-indigo-900/10 border border-indigo-900/30 rounded font-mono wrap-break-word">{metadata.visualPrompt}</p>
             </div>
             <div>
                 <label className="text-xs text-gray-500 uppercase font-semibold">Tags</label>
@@ -853,7 +853,7 @@ ${asset.metadata.script}
              </div>
 
             {/* Production Action */}
-            <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 p-4 md:p-6 rounded-xl border border-indigo-500/30 text-center mt-auto">
+            <div className="bg-linear-to-br from-indigo-900/20 to-purple-900/20 p-4 md:p-6 rounded-xl border border-indigo-500/30 text-center mt-auto">
                 <FilmIcon className="w-10 h-10 md:w-12 md:h-12 text-indigo-400 mx-auto mb-3" />
                 <h3 className="text-lg md:text-xl font-bold text-white mb-2">Tout semble correct ?</h3>
                 <p className="text-gray-400 text-sm mb-6">
@@ -886,7 +886,7 @@ ${asset.metadata.script}
                         {/* Final Composed Video Player */}
                         {composedVideoUrl ? (
                              <div className="w-full space-y-4">
-                                <div className={`w-full bg-black rounded-xl overflow-hidden shadow-2xl border border-green-500/50 ${format === 'shorts' ? 'aspect-[9/16] max-w-xs md:max-w-sm mx-auto' : 'aspect-video'}`}>
+                                <div className={`w-full bg-black rounded-xl overflow-hidden shadow-2xl border border-green-500/50 ${format === 'shorts' ? 'aspect-9/16 max-w-xs md:max-w-sm mx-auto' : 'aspect-video'}`}>
                                      <video
                                         src={composedVideoUrl}
                                         controls
@@ -902,7 +902,7 @@ ${asset.metadata.script}
                         ) : (
                              <>
                                 {/* Synced Player */}
-                                <div className={`w-full bg-black rounded-xl overflow-hidden shadow-2xl border border-gray-800 relative ${format === 'shorts' ? 'aspect-[9/16] max-w-xs md:max-w-sm mx-auto' : 'aspect-video'}`}>
+                                <div className={`w-full bg-black rounded-xl overflow-hidden shadow-2xl border border-gray-800 relative ${format === 'shorts' ? 'aspect-9/16 max-w-xs md:max-w-sm mx-auto' : 'aspect-video'}`}>
                                     {generatedVideoUrl ? (
                                         <>
                                             <video
@@ -1121,7 +1121,7 @@ ${asset.metadata.script}
                     </button>
 
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="p-3 bg-red-600/20 rounded-full flex-shrink-0">
+                        <div className="p-3 bg-red-600/20 rounded-full shrink-0">
                             <YoutubeIcon className="w-6 h-6 md:w-8 md:h-8 text-red-500" />
                         </div>
                         <div>
@@ -1195,7 +1195,7 @@ ${asset.metadata.script}
                        </button>
                    </div>
                    
-                   <div className="flex-grow overflow-y-auto p-4 md:p-6 space-y-4">
+                   <div className="grow overflow-y-auto p-4 md:p-6 space-y-4">
                        {exportQueue.length === 0 ? (
                            <div className="text-center py-12 text-gray-500">
                                Votre file d'attente est vide. Créez des vidéos pour les ajouter ici.
@@ -1208,7 +1208,7 @@ ${asset.metadata.script}
                                            {selectedAssetIds.has(asset.id) ? <CheckSquareIcon className="w-6 h-6" /> : <SquareIcon className="w-6 h-6 text-gray-500" />}
                                        </button>
                                        
-                                       <div className="w-16 h-16 bg-black rounded-lg overflow-hidden flex-shrink-0 relative">
+                                       <div className="w-16 h-16 bg-black rounded-lg overflow-hidden shrink-0 relative">
                                            {asset.thumbnailImage ? (
                                                <img src={asset.thumbnailImage} className="w-full h-full object-cover" alt={`Thumbnail pour ${asset.metadata.title}`} />
                                            ) : (
@@ -1220,7 +1220,7 @@ ${asset.metadata.script}
                                        </div>
                                    </div>
                                    
-                                   <div className="flex-grow min-w-0">
+                                   <div className="grow min-w-0">
                                        <h4 className="font-semibold text-white truncate">{asset.metadata.title}</h4>
                                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 mt-1">
                                             <span className="text-indigo-400">{asset.channelName}</span>

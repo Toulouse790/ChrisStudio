@@ -26,7 +26,11 @@ const loadingMessages = [
   "Rédaction de votre discours pour les Oscars..."
 ];
 
-const LoadingIndicator: React.FC = () => {
+interface LoadingIndicatorProps {
+  text?: string;
+}
+
+const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({ text }) => {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
@@ -40,7 +44,7 @@ const LoadingIndicator: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center p-12 bg-gray-800/50 rounded-lg border border-gray-700">
       <div className="w-16 h-16 border-4 border-t-transparent border-indigo-500 rounded-full animate-spin"></div>
-      <h2 className="text-2xl font-semibold mt-8 text-gray-200">Génération de votre vidéo</h2>
+      <h2 className="text-2xl font-semibold mt-8 text-gray-200">{text || "Génération de votre vidéo"}</h2>
       <p className="mt-2 text-gray-400 text-center transition-opacity duration-500">
         {loadingMessages[messageIndex]}
       </p>
