@@ -228,7 +228,7 @@ const App: React.FC = () => {
           ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50'
           : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
       }`}>
-      <Icon className="w-5 h-5 flex-shrink-0" />
+      <Icon className="w-5 h-5 shrink-0" />
       <span className="font-medium">{label}</span>
     </button>
   );
@@ -242,8 +242,8 @@ const App: React.FC = () => {
       {/* Mobile Header with Safe Area for PWA */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0f0f0f] border-b border-gray-800 z-40 flex items-center px-4 justify-between pt-[env(safe-area-inset-top)]">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-lg shadow-indigo-500/20 shadow-lg"></div>
-          <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+          <div className="w-8 h-8 bg-linear-to-tr from-indigo-500 to-purple-500 rounded-lg shadow-indigo-500/20 shadow-lg"></div>
+          <h1 className="text-lg font-bold bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
             ChrisStudio
           </h1>
         </div>
@@ -269,13 +269,13 @@ const App: React.FC = () => {
       `}>
         {/* Desktop Logo (Hidden on mobile) */}
         <div className="hidden md:flex mb-8 px-2 items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-lg shadow-indigo-500/20 shadow-lg"></div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+          <div className="w-8 h-8 bg-linear-to-tr from-indigo-500 to-purple-500 rounded-lg shadow-indigo-500/20 shadow-lg"></div>
+          <h1 className="text-xl font-bold bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
             ChrisStudio
           </h1>
         </div>
 
-        <nav className="flex-grow space-y-2">
+        <nav className="grow space-y-2">
           <NavItem
             view={View.DASHBOARD}
             icon={LayoutDashboardIcon}
@@ -321,7 +321,7 @@ const App: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-grow flex flex-col bg-[#050505] overflow-hidden relative pt-16 md:pt-0 h-[100dvh]">
+      <main className="grow flex flex-col bg-[#050505] overflow-hidden relative pt-16 md:pt-0 h-dvh">
         <div className="absolute top-0 left-0 w-full h-64 bg-indigo-900/10 blur-3xl pointer-events-none"></div>
 
         {currentView === View.DASHBOARD && (

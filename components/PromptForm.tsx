@@ -87,6 +87,7 @@ const CustomSelect: React.FC<{
         value={value}
         onChange={onChange}
         disabled={disabled}
+        aria-label={label}
         className="w-full bg-[#1f1f1f] border border-gray-600 rounded-lg pl-10 pr-8 py-2.5 appearance-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-700/50 disabled:border-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed">
         {children}
       </select>
@@ -145,6 +146,7 @@ const ImageUpload: React.FC<{
     <button
       type="button"
       onClick={() => inputRef.current?.click()}
+      aria-label={`Upload ${label}`}
       className="w-28 h-20 bg-gray-700/50 hover:bg-gray-700 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:text-white transition-colors">
       <PlusIcon className="w-6 h-6" />
       <span className="text-xs mt-1">{label}</span>
@@ -154,6 +156,7 @@ const ImageUpload: React.FC<{
         onChange={handleFileChange}
         accept="image/*"
         className="hidden"
+        aria-label={`Select ${label} file`}
       />
     </button>
   );
@@ -202,6 +205,7 @@ const VideoUpload: React.FC<{
     <button
       type="button"
       onClick={() => inputRef.current?.click()}
+      aria-label="Upload video"
       className="w-48 h-28 bg-gray-700/50 hover:bg-gray-700 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:text-white transition-colors text-center">
       <PlusIcon className="w-6 h-6" />
       <span className="text-xs mt-1 px-2">{label}</span>
@@ -211,6 +215,7 @@ const VideoUpload: React.FC<{
         onChange={handleFileChange}
         accept="video/*"
         className="hidden"
+        aria-label="Select video file"
       />
     </button>
   );
@@ -592,7 +597,7 @@ const PromptForm: React.FC<PromptFormProps> = ({
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={promptPlaceholder}
-            className="flex-grow bg-transparent focus:outline-none resize-none text-base text-gray-200 placeholder-gray-500 max-h-48 py-2"
+            className="grow bg-transparent focus:outline-none resize-none text-base text-gray-200 placeholder-gray-500 max-h-48 py-2"
             rows={1}
           />
           <button

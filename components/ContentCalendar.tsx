@@ -187,7 +187,7 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
   const getChannelById = (id: string) => channels.find(c => c.id === id);
 
   return (
-    <div className="flex-grow overflow-y-auto p-4 md:p-8">
+    <div className="grow overflow-y-auto p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -334,7 +334,7 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
                       >
                         <div className="flex flex-col md:flex-row md:items-center gap-4">
                           {/* Numéro et Date */}
-                          <div className="flex items-center gap-4 md:w-32 flex-shrink-0">
+                          <div className="flex items-center gap-4 md:w-32 shrink-0">
                             <span className="text-gray-600 font-mono text-sm">#{index + 1}</span>
                             {item.scheduledDate && (
                               <span className="text-gray-400 text-sm">
@@ -347,14 +347,15 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
                           </div>
 
                           {/* Contenu */}
-                          <div className="flex-grow">
+                          <div className="grow">
                             {editingItem === item.id ? (
                               <div className="flex gap-2">
                                 <input
                                   type="text"
                                   value={editTitle}
                                   onChange={(e) => setEditTitle(e.target.value)}
-                                  className="flex-grow bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                                  className="grow bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                                  aria-label="Modifier le titre"
                                   autoFocus
                                 />
                                 <button
@@ -384,7 +385,7 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
                           </div>
 
                           {/* Status Badge */}
-                          <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="flex items-center gap-3 shrink-0">
                             <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(item.status)}`}>
                               {getStatusLabel(item.status)}
                             </span>
@@ -392,7 +393,7 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
 
                           {/* Actions */}
                           {editingItem !== item.id && (
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex items-center gap-2 shrink-0">
                               {item.status === ContentStatus.PROPOSED && (
                                 <>
                                   <button
