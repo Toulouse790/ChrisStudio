@@ -45,10 +45,10 @@ const Dashboard: React.FC<DashboardProps> = ({
           </p>
         </div>
         <button
-          onClick={() => onViewChange(View.STUDIO)}
+          onClick={() => onViewChange(View.CALENDAR)}
           className="w-full md:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/20">
           <PlusIcon className="w-5 h-5" />
-          Créer une vidéo
+          Voir le calendrier
         </button>
       </header>
 
@@ -136,10 +136,10 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <FilmIcon className="w-12 h-12 text-gray-600 mx-auto mb-3" />
                   <p className="text-gray-400">Aucune vidéo créée dans cette session.</p>
                   <button 
-                    onClick={() => onViewChange(View.STUDIO)}
+                    onClick={() => onViewChange(View.CALENDAR)}
                     className="mt-4 text-indigo-400 hover:text-indigo-300 text-sm font-medium"
                   >
-                      Commencer une nouvelle création
+                      Planifier des vidéos
                   </button>
               </div>
           ) : (

@@ -13,7 +13,17 @@ import {
 } from '@google/genai';
 import {GenerateVideoParams, GenerationMode, YouTubeMetadata} from '../types';
 
-const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+// Get API key from Vite env (for production) or localStorage (for local dev)
+const getApiKey = (): string => {
+  // Try Vite environment variable first
+  if (import.meta.env.VITE_API_KEY) {
+    return import.meta.env.VITE_API_KEY;
+  }
+  // Fallback to localStorage for local development
+  return localStorage.getItem('AI_API_KEY') || '';
+};
+
+const ai = new GoogleGenAI({apiKey: getApiKey()});
 
 // --- Helper: Convert Base64 PCM to WAV Blob ---
 

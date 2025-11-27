@@ -15,9 +15,7 @@ export enum AppState {
 
 export enum View {
   DASHBOARD = 'dashboard',
-  STUDIO = 'studio',
   CALENDAR = 'calendar',
-  TEMPLATES = 'templates',
   ASSETS = 'assets',
 }
 
@@ -165,7 +163,6 @@ export interface IntroOutroSettings {
 // --- Persistence ---
 export interface AppSettings {
     channels: Channel[];
-    templates: Template[];
     watermarkSettings: WatermarkSettings;
     calendar?: ContentCalendar;
 }

@@ -6,20 +6,16 @@ import React, {useState, useEffect} from 'react';
 import ApiKeyDialog from './components/ApiKeyDialog';
 import {
   LayoutDashboardIcon,
-  VideoIcon,
-  LibraryIcon,
   SettingsIcon,
   MenuIcon,
   XMarkIcon,
   CalendarIcon,
 } from './components/icons';
 import Dashboard from './components/Dashboard';
-import CreatorStudio from './components/CreatorStudio';
 import AssetsSettings from './components/AssetsSettings';
-import TemplateManager from './components/TemplateManager';
 import ContentCalendarView from './components/ContentCalendar';
 import OAuthCallback from './components/OAuthCallback';
-import {View, WatermarkSettings, IntroOutroSettings, Channel, GeneratedAsset, Template, MusicTrack, AppSettings, ContentCalendar, CalendarItem} from './types';
+import {View, WatermarkSettings, IntroOutroSettings, Channel, GeneratedAsset, MusicTrack, AppSettings, ContentCalendar, CalendarItem} from './types';
 
 const STORAGE_KEY = 'chrisstudio_settings_v2';
 
@@ -59,39 +55,6 @@ const DEFAULT_CHANNELS: Channel[] = [
     }
 ];
 
-const DEFAULT_TEMPLATES: Template[] = [
-    {
-        id: 'tpl_1',
-        name: 'What If Scientifique',
-        description: 'Format hypothèse scientifique avec suspense et révélations progressives.',
-        channelId: 'etsi',
-        niche: 'Et si la Terre s\'arrêtait de tourner',
-        format: 'long-form',
-        language: 'fr',
-        isSeries: false
-    },
-    {
-        id: 'tpl_2',
-        name: 'Documentaire Préhistoire',
-        description: 'Format chronologique pour raconter l\'évolution humaine étape par étape.',
-        channelId: 'odyssee',
-        niche: 'Les premiers Homo Sapiens',
-        format: 'long-form',
-        language: 'fr',
-        isSeries: true
-    },
-    {
-        id: 'tpl_3',
-        name: 'Affaire Non Résolue',
-        description: 'Format enquête True Crime avec suspense et analyse des indices.',
-        channelId: 'dossiers',
-        niche: 'Jack l\'Eventreur',
-        format: 'long-form',
-        language: 'fr',
-        isSeries: false
-    }
-];
-
 const DEFAULT_WATERMARK: WatermarkSettings = {
     enabled: false,
     dataUrl: null,
@@ -108,7 +71,6 @@ const App: React.FC = () => {
   
   // State
   const [channels, setChannels] = useState<Channel[]>(DEFAULT_CHANNELS);
-  const [templates, setTemplates] = useState<Template[]>(DEFAULT_TEMPLATES);
   const [watermarkSettings, setWatermarkSettings] = useState<WatermarkSettings>(DEFAULT_WATERMARK);
   
   // Non-persisted State (Files)
@@ -118,9 +80,7 @@ const App: React.FC = () => {
     outro: { enabled: false, file: null, previewUrl: null }
   });
   const [musicLibrary, setMusicLibrary] = useState<MusicTrack[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [calendar, setCalendar] = useState<ContentCalendar | null>(null);
-  const [calendarItemToGenerate, setCalendarItemToGenerate] = useState<CalendarItem | null>(null);
 
   // Load Settings from LocalStorage on Mount
   useEffect(() => {
@@ -129,7 +89,6 @@ const App: React.FC = () => {
           try {
               const parsed: AppSettings = JSON.parse(savedData);
               if (parsed.channels) setChannels(parsed.channels);
-              if (parsed.templates) setTemplates(parsed.templates);
               if (parsed.watermarkSettings) setWatermarkSettings(parsed.watermarkSettings);
               if (parsed.calendar) setCalendar(parsed.calendar);
           } catch (e) {
@@ -142,16 +101,23 @@ const App: React.FC = () => {
   useEffect(() => {
       const settingsToSave: AppSettings = {
           channels,
-          templates,
           watermarkSettings,
           calendar: calendar ?? undefined
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsToSave));
-  }, [channels, templates, watermarkSettings, calendar]);
+  }, [channels, watermarkSettings, calendar]);
 
   // Check for API key on initial load
   useEffect(() => {
     const checkApiKey = () => {
+      // Check environment variable first (for Vercel deployment)
+      const envApiKey = import.meta.env.VITE_API_KEY;
+      if (envApiKey) {
+        // API key is configured via environment, no need to show dialog
+        return;
+      }
+      
+      // Fallback to localStorage for local development
       const storedApiKey = localStorage.getItem('AI_API_KEY');
       if (!storedApiKey) {
         setShowApiKeyDialog(true);
@@ -182,41 +148,14 @@ const App: React.FC = () => {
       ch.id === channelId ? { ...ch, connected } : ch
     ));
   };
-  
-  const handleUseTemplate = (template: Template) => {
-      setSelectedTemplate(template);
-      setCurrentView(View.STUDIO);
-  };
-  
-  const handleSaveTemplate = (newTemplate: Template) => {
-      setTemplates(prev => [...prev, newTemplate]);
-  };
-  
-  const handleDeleteTemplate = (id: string) => {
-      setTemplates(prev => prev.filter(t => t.id !== id));
-  };
 
   const handleCalendarUpdate = (updatedCalendar: ContentCalendar) => {
     setCalendar(updatedCalendar);
   };
 
   const handleGenerateFromCalendar = (item: CalendarItem) => {
-    // Créer un template temporaire à partir de l'item du calendrier
-    const channel = channels.find(c => c.id === item.channelId);
-    if (channel) {
-      const tempTemplate: Template = {
-        id: `cal_${item.id}`,
-        name: item.title,
-        description: item.description,
-        channelId: item.channelId,
-        niche: item.title,
-        format: 'long-form',
-        language: 'fr',
-        isSeries: false,
-      };
-      setSelectedTemplate(tempTemplate);
-      setCurrentView(View.STUDIO);
-    }
+    // La génération se fait directement dans le calendrier
+    console.log('Generating video for:', item.title);
   };
 
   const toggleSidebar = () => {
@@ -224,9 +163,6 @@ const App: React.FC = () => {
   };
 
   const handleNavClick = (view: View) => {
-    if (view === View.STUDIO) {
-        setSelectedTemplate(null);
-    }
     setCurrentView(view);
     setIsSidebarOpen(false); 
   };
@@ -316,19 +252,9 @@ const App: React.FC = () => {
             label="Calendrier"
           />
           <NavItem
-            view={View.STUDIO}
-            icon={VideoIcon}
-            label="Studio de création"
-          />
-          <NavItem
-            view={View.TEMPLATES}
-            icon={LibraryIcon}
-            label="Modèles"
-          />
-          <NavItem
             view={View.ASSETS}
             icon={SettingsIcon}
-            label="Ressources & Paramètres"
+            label="Paramètres"
           />
         </nav>
 
@@ -367,25 +293,10 @@ const App: React.FC = () => {
             calendar={calendar}
             onCalendarUpdate={handleCalendarUpdate}
             onGenerateVideo={handleGenerateFromCalendar}
-          />
-        )}
-        {currentView === View.STUDIO && (
-          <CreatorStudio 
-            watermarkSettings={watermarkSettings} 
+            onProjectCreated={handleProjectCreated}
+            watermarkSettings={watermarkSettings}
             introOutroSettings={introOutroSettings}
             musicLibrary={musicLibrary}
-            channels={channels}
-            onProjectCreated={handleProjectCreated}
-            initialTemplate={selectedTemplate}
-            onSaveTemplate={handleSaveTemplate}
-          />
-        )}
-        {currentView === View.TEMPLATES && (
-          <TemplateManager 
-              templates={templates}
-              channels={channels}
-              onUseTemplate={handleUseTemplate}
-              onDeleteTemplate={handleDeleteTemplate}
           />
         )}
         {currentView === View.ASSETS && (

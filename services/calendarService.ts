@@ -12,7 +12,15 @@ import {
   ContentStatus 
 } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Get API key from Vite env (for production) or localStorage (for local dev)
+const getApiKey = (): string => {
+  if (import.meta.env.VITE_API_KEY) {
+    return import.meta.env.VITE_API_KEY;
+  }
+  return localStorage.getItem('AI_API_KEY') || '';
+};
+
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 /**
  * Génère des idées de vidéos pour une chaîne donnée

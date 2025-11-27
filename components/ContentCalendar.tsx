@@ -10,6 +10,10 @@ import {
   ContentCalendar,
   CalendarItem,
   ContentStatus,
+  GeneratedAsset,
+  WatermarkSettings,
+  IntroOutroSettings,
+  MusicTrack,
 } from '../types';
 import {
   generateCalendarItems,
@@ -35,6 +39,10 @@ interface ContentCalendarProps {
   calendar: ContentCalendar | null;
   onCalendarUpdate: (calendar: ContentCalendar) => void;
   onGenerateVideo: (item: CalendarItem) => void;
+  onProjectCreated?: (project: GeneratedAsset) => void;
+  watermarkSettings?: WatermarkSettings;
+  introOutroSettings?: IntroOutroSettings;
+  musicLibrary?: MusicTrack[];
 }
 
 const ContentCalendarView: React.FC<ContentCalendarProps> = ({
@@ -42,6 +50,10 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
   calendar,
   onCalendarUpdate,
   onGenerateVideo,
+  onProjectCreated,
+  watermarkSettings,
+  introOutroSettings,
+  musicLibrary,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<string>('all');
