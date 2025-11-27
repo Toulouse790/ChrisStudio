@@ -95,7 +95,9 @@ RÉPONDS EN JSON STRICTEMENT DANS CE FORMAT :
 }
 
 /**
- * Génère un calendrier complet avec dates de publication espacées de 2-3 jours
+ * Génère un calendrier optimisé pour la monétisation YouTube
+ * 2 vidéos/semaine/chaîne (Mardi + Samedi) = 6 vidéos/semaine = 24/mois
+ * Meilleur engagement et qualité pour atteindre les 4000h watch time
  */
 export function createCalendarWithSchedule(
   items: CalendarItem[],
@@ -103,17 +105,67 @@ export function createCalendarWithSchedule(
   year: number,
   startDay: number = 1
 ): ContentCalendar {
-  const scheduledItems = items.map((item, index) => {
-    // Espacement de 2-3 jours (alternance)
-    const dayOffset = index * (index % 2 === 0 ? 2 : 3);
-    const scheduledDate = new Date(year, month - 1, startDay + dayOffset);
+  // Grouper les items par chaîne
+  const itemsByChannel: Record<string, CalendarItem[]> = {};
+  items.forEach(item => {
+    if (!itemsByChannel[item.channelId]) {
+      itemsByChannel[item.channelId] = [];
+    }
+    itemsByChannel[item.channelId].push(item);
+  });
+
+  const channelIds = Object.keys(itemsByChannel);
+  
+  // Jours de publication optimaux : Mardi (2) et Samedi (6)
+  // Mardi = bon engagement en semaine
+  // Samedi = pic de visionnage weekend
+  const publishDaysOfWeek = [2, 6]; // Mardi, Samedi
+  
+  const scheduledItems: CalendarItem[] = [];
+  
+  // Trouver le premier mardi du mois
+  const baseDate = new Date(year, month - 1, startDay);
+  const dayOfWeek = baseDate.getDay();
+  const daysUntilTuesday = dayOfWeek <= 2 ? (2 - dayOfWeek) : (9 - dayOfWeek);
+  const firstTuesday = new Date(year, month - 1, startDay + daysUntilTuesday);
+  
+  // Pour chaque chaîne
+  channelIds.forEach((channelId) => {
+    const channelItems = itemsByChannel[channelId];
+    let itemIndex = 0;
     
-    // Si on dépasse le mois, on continue le mois suivant
-    return {
-      ...item,
-      scheduledDate,
-      updatedAt: new Date(),
-    };
+    // 4 semaines, 2 vidéos par semaine = 8 vidéos par chaîne max
+    // On prend les 8 premières (ou moins si moins générées)
+    const maxVideos = Math.min(channelItems.length, 8);
+    
+    for (let week = 0; week < 4 && itemIndex < maxVideos; week++) {
+      for (let dayIdx = 0; dayIdx < publishDaysOfWeek.length && itemIndex < maxVideos; dayIdx++) {
+        const item = channelItems[itemIndex];
+        const targetDay = publishDaysOfWeek[dayIdx];
+        
+        // Calculer le décalage depuis le premier mardi
+        // Mardi = 0 jours, Samedi = 4 jours
+        const dayOffset = targetDay === 2 ? 0 : 4;
+        
+        const scheduledDate = new Date(firstTuesday);
+        scheduledDate.setDate(firstTuesday.getDate() + (week * 7) + dayOffset);
+        
+        scheduledItems.push({
+          ...item,
+          scheduledDate,
+          updatedAt: new Date(),
+        });
+        
+        itemIndex++;
+      }
+    }
+  });
+
+  // Trier par date puis par chaîne
+  scheduledItems.sort((a, b) => {
+    const dateDiff = (a.scheduledDate?.getTime() || 0) - (b.scheduledDate?.getTime() || 0);
+    if (dateDiff !== 0) return dateDiff;
+    return a.channelId.localeCompare(b.channelId);
   });
 
   return {
@@ -127,12 +179,13 @@ export function createCalendarWithSchedule(
 
 /**
  * Génère le calendrier pour toutes les chaînes
+ * 8 vidéos/chaîne = 2 vidéos/semaine x 4 semaines
  */
 export async function generateFullCalendar(
   channels: { id: string; name: string; theme: string }[],
   month: number,
   year: number,
-  videosPerChannel: number = 12
+  videosPerChannel: number = 8
 ): Promise<ContentCalendar> {
   const allItems: CalendarItem[] = [];
 
