@@ -25,6 +25,8 @@ const STORAGE_KEY = 'chrisstudio_settings_v2';
 const DEFAULT_CHANNELS: Channel[] = [
     {
       id: 'etsi',
+      youtubeChannelId: 'UCg5KvEQBZ90dsk5O0lXlqeg',
+      youtubeHandle: '@EtSi-official',
       name: "Et Si...",
       theme: "Scénarios alternatifs, hypothèses historiques et scientifiques, expériences de pensée.",
       color: "text-cyan-500",
@@ -34,6 +36,8 @@ const DEFAULT_CHANNELS: Channel[] = [
     },
     {
       id: 'odyssee',
+      youtubeChannelId: 'UCWzrIQhDt6IKyVHroDoRWGw',
+      youtubeHandle: '@LOdysseeHumaine',
       name: "L'Odyssée Humaine",
       theme: "Histoire de l'humanité, grandes civilisations, moments clés de notre évolution.",
       color: "text-amber-500",
@@ -43,6 +47,8 @@ const DEFAULT_CHANNELS: Channel[] = [
     },
     {
       id: 'dossiers',
+      youtubeChannelId: 'UCp3fqxkp3kgFJu33gpdcUtA',
+      youtubeHandle: '@DossiersClassifies',
       name: "Dossiers Classifiés",
       theme: "Mystères, affaires non résolues, secrets historiques, enquêtes fascinantes.",
       color: "text-purple-500",

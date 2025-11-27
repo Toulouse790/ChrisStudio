@@ -72,6 +72,7 @@ export interface GenerateVideoParams {
 
 export interface Channel {
   id: string; // internal ID
+  youtubeChannelId?: string; // YouTube Channel ID (e.g., UCp3fqxkp3kgFJu33gpdcUtA)
   youtubeHandle?: string; // e.g., @MyChannel
   name: string;
   theme: string;
