@@ -16,6 +16,7 @@ export enum AppState {
 export enum View {
   DASHBOARD = 'dashboard',
   STUDIO = 'studio',
+  CALENDAR = 'calendar',
   TEMPLATES = 'templates',
   ASSETS = 'assets',
 }
@@ -165,4 +166,50 @@ export interface AppSettings {
     channels: Channel[];
     templates: Template[];
     watermarkSettings: WatermarkSettings;
+    calendar?: ContentCalendar;
+}
+
+// --- Calendar/Planner Types ---
+
+export enum ContentStatus {
+  PROPOSED = 'proposed',      // IA a proposé, en attente de validation
+  APPROVED = 'approved',      // Validé par l'utilisateur
+  MODIFIED = 'modified',      // Modifié par l'utilisateur
+  REJECTED = 'rejected',      // Rejeté
+  GENERATING = 'generating',  // En cours de génération
+  READY = 'ready',            // Vidéo prête
+  SCHEDULED = 'scheduled',    // Planifié pour publication
+  PUBLISHED = 'published',    // Publié sur YouTube
+}
+
+export interface CalendarItem {
+  id: string;
+  channelId: string;
+  title: string;
+  description: string;           // Résumé du sujet
+  originalTitle?: string;        // Titre original si modifié
+  status: ContentStatus;
+  scheduledDate?: Date;
+  generatedAsset?: GeneratedAsset;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ContentCalendar {
+  id: string;
+  month: number;                  // 1-12
+  year: number;
+  items: CalendarItem[];
+  generatedAt: Date;
+  validatedAt?: Date;
+}
+
+export interface CalendarGenerationRequest {
+  channelId: string;
+  channelName: string;
+  channelTheme: string;
+  month: number;
+  year: number;
+  count: number;                  // Nombre de sujets à générer (ex: 12)
+  existingTitles?: string[];      // Pour éviter les doublons
 }

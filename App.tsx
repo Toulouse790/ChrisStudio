@@ -11,12 +11,14 @@ import {
   SettingsIcon,
   MenuIcon,
   XMarkIcon,
+  CalendarIcon,
 } from './components/icons';
 import Dashboard from './components/Dashboard';
 import CreatorStudio from './components/CreatorStudio';
 import AssetsSettings from './components/AssetsSettings';
 import TemplateManager from './components/TemplateManager';
-import {View, WatermarkSettings, IntroOutroSettings, Channel, GeneratedAsset, Template, MusicTrack, AppSettings} from './types';
+import ContentCalendarView from './components/ContentCalendar';
+import {View, WatermarkSettings, IntroOutroSettings, Channel, GeneratedAsset, Template, MusicTrack, AppSettings, ContentCalendar, CalendarItem} from './types';
 
 const STORAGE_KEY = 'chrisstudio_settings_v2';
 
@@ -109,6 +111,8 @@ const App: React.FC = () => {
   });
   const [musicLibrary, setMusicLibrary] = useState<MusicTrack[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [calendar, setCalendar] = useState<ContentCalendar | null>(null);
+  const [calendarItemToGenerate, setCalendarItemToGenerate] = useState<CalendarItem | null>(null);
 
   // Load Settings from LocalStorage on Mount
   useEffect(() => {
@@ -119,6 +123,7 @@ const App: React.FC = () => {
               if (parsed.channels) setChannels(parsed.channels);
               if (parsed.templates) setTemplates(parsed.templates);
               if (parsed.watermarkSettings) setWatermarkSettings(parsed.watermarkSettings);
+              if (parsed.calendar) setCalendar(parsed.calendar);
           } catch (e) {
               console.error("Failed to load settings", e);
           }
@@ -130,10 +135,11 @@ const App: React.FC = () => {
       const settingsToSave: AppSettings = {
           channels,
           templates,
-          watermarkSettings
+          watermarkSettings,
+          calendar: calendar ?? undefined
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsToSave));
-  }, [channels, templates, watermarkSettings]);
+  }, [channels, templates, watermarkSettings, calendar]);
 
   // Check for API key on initial load
   useEffect(() => {
@@ -169,6 +175,29 @@ const App: React.FC = () => {
   
   const handleDeleteTemplate = (id: string) => {
       setTemplates(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleCalendarUpdate = (updatedCalendar: ContentCalendar) => {
+    setCalendar(updatedCalendar);
+  };
+
+  const handleGenerateFromCalendar = (item: CalendarItem) => {
+    // Créer un template temporaire à partir de l'item du calendrier
+    const channel = channels.find(c => c.id === item.channelId);
+    if (channel) {
+      const tempTemplate: Template = {
+        id: `cal_${item.id}`,
+        name: item.title,
+        description: item.description,
+        channelId: item.channelId,
+        niche: item.title,
+        format: 'long-form',
+        language: 'fr',
+        isSeries: false,
+      };
+      setSelectedTemplate(tempTemplate);
+      setCurrentView(View.STUDIO);
+    }
   };
 
   const toggleSidebar = () => {
@@ -253,6 +282,11 @@ const App: React.FC = () => {
             label="Tableau de bord"
           />
           <NavItem
+            view={View.CALENDAR}
+            icon={CalendarIcon}
+            label="Calendrier"
+          />
+          <NavItem
             view={View.STUDIO}
             icon={VideoIcon}
             label="Studio de création"
@@ -296,6 +330,14 @@ const App: React.FC = () => {
                 channels={channels} 
                 projects={projects}
             />
+        )}
+        {currentView === View.CALENDAR && (
+          <ContentCalendarView
+            channels={channels}
+            calendar={calendar}
+            onCalendarUpdate={handleCalendarUpdate}
+            onGenerateVideo={handleGenerateFromCalendar}
+          />
         )}
         {currentView === View.STUDIO && (
           <CreatorStudio 

@@ -9,12 +9,15 @@ import {
   ArrowDown,
   ArrowRight,
   Baseline,
+  Calendar,
   Captions,
+  Check,
   CheckCircle2,
   CheckSquare,
   ChevronDown,
   Copy,
   Download,
+  Edit,
   ExternalLink,
   Film,
   Image,
@@ -215,3 +218,23 @@ export const MusicIcon: React.FC<React.SVGProps<SVGSVGElement>> = (
 export const UsersIcon: React.FC<React.SVGProps<SVGSVGElement>> = (
   props,
 ) => <Users {...defaultProps} {...props} />;
+
+export const CalendarIcon: React.FC<React.SVGProps<SVGSVGElement>> = (
+  props,
+) => <Calendar {...defaultProps} {...props} />;
+
+export const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (
+  props,
+) => <Check {...defaultProps} {...props} />;
+
+export const XIcon: React.FC<React.SVGProps<SVGSVGElement>> = (
+  props,
+) => <X {...defaultProps} {...props} />;
+
+export const EditIcon: React.FC<React.SVGProps<SVGSVGElement>> = (
+  props,
+) => <Edit {...defaultProps} {...props} />;
+
+export const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>> = (
+  props,
+) => <RefreshCw {...defaultProps} {...props} />;
