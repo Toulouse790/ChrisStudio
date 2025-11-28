@@ -1,5 +1,8 @@
 {
   "name": "chrisstudio-tts",
   "compatibility_date": "2025-11-28",
-  "main": "cloudflare-worker-tts.js"
+  "main": "cloudflare-worker-tts.js",
+  "vars": {
+    "GOOGLE_TTS_API_KEY": "AIzaSyCI_ijyi5HCHQ0pHAnWhd8TYLJNcNHzE48"
+  }
 }
