@@ -75,11 +75,19 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
   ];
 
-  // Stats du calendrier
+  // Stats du calendrier (filtré par chaîne sélectionnée)
   const stats = useMemo(() => {
     if (!calendar) return null;
+    // Si une chaîne spécifique est sélectionnée, calculer les stats pour elle uniquement
+    if (selectedChannel !== 'all') {
+      const filteredCalendar = {
+        ...calendar,
+        items: calendar.items.filter(item => item.channelId === selectedChannel)
+      };
+      return getCalendarStats(filteredCalendar);
+    }
     return getCalendarStats(calendar);
-  }, [calendar]);
+  }, [calendar, selectedChannel]);
 
   // Items filtrés par chaîne
   const filteredItems = useMemo(() => {
@@ -103,13 +111,18 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
     return Object.entries(itemsByChannel) as [string, CalendarItem[]][];
   }, [itemsByChannel]);
 
-  // Générer le calendrier
+  // Générer le calendrier (uniquement pour la chaîne sélectionnée ou toutes)
   const handleGenerateCalendar = async () => {
     setIsGenerating(true);
     try {
       const allItems: CalendarItem[] = [];
       
-      for (const channel of channels) {
+      // Filtrer les chaînes à générer
+      const channelsToGenerate = selectedChannel === 'all' 
+        ? channels 
+        : channels.filter(c => c.id === selectedChannel);
+      
+      for (const channel of channelsToGenerate) {
         const items = await generateCalendarItems({
           channelId: channel.id,
           channelName: channel.name,
@@ -288,9 +301,9 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
         {/* Loading */}
         {isGenerating && (
           <div className="flex flex-col items-center justify-center py-20">
-            <LoadingIndicator text={`Génération des idées pour ${channels.length} chaînes...`} />
+            <LoadingIndicator text={`Génération des idées${selectedChannel === 'all' ? ` pour ${channels.length} chaînes` : ''}...`} />
             <p className="text-gray-500 mt-4 text-sm">
-              L'IA génère 12 sujets par chaîne, cela peut prendre quelques secondes.
+              L'IA génère 12 sujets{selectedChannel === 'all' ? ' par chaîne' : ''}, cela peut prendre quelques secondes.
             </p>
           </div>
         )}

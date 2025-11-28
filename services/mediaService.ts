@@ -122,6 +122,7 @@ export async function downloadImage(url: string): Promise<Blob> {
 
 /**
  * Génère des clips vidéo pour chaque scène du script
+ * Améliore les recherches Pexels avec des mots-clés pertinents
  */
 export async function generateSceneMedia(
   scenes: Array<{ id: number; text: string; imagePrompt: string; duration: number }>,
@@ -134,26 +135,120 @@ export async function generateSceneMedia(
     const progress = ((i + 1) / scenes.length) * 100;
     onProgress?.(progress, `Recherche média scène ${i + 1}/${scenes.length}...`);
 
-    // Extraire les mots-clés du prompt
-    const keywords = scene.imagePrompt
-      .split(' ')
-      .filter(w => w.length > 4)
-      .slice(0, 3)
-      .join(' ');
+    // Améliorer la recherche avec des mots-clés simples en anglais
+    let searchQuery = extractKeywords(scene.imagePrompt || scene.text);
+    
+    // Chercher des images (plus fiable que les vidéos)
+    let images = await searchImages(searchQuery, 5);
+    
+    // Si pas de résultats, essayer avec des termes plus génériques
+    if (images.length === 0) {
+      const fallbackQuery = getGenericQuery(scene.text);
+      images = await searchImages(fallbackQuery, 5);
+    }
+    
+    // Chercher des vidéos aussi
+    const videos = await searchVideos(searchQuery, 3);
 
-    // Chercher des vidéos correspondantes
-    const videos = await searchVideos(keywords || scene.text.substring(0, 50), 3);
-    const images = await searchImages(keywords || scene.text.substring(0, 50), 3);
-
+    // Prendre une image aléatoire parmi les résultats pour varier
+    const randomIndex = Math.floor(Math.random() * Math.min(3, images.length));
+    
     results.push({
       sceneId: scene.id,
       videoUrl: videos[0] ? getBestVideoUrl(videos[0]) : '',
-      imageUrl: images[0]?.src.large2x || images[0]?.src.large || ''
+      imageUrl: images[randomIndex]?.src.large2x || images[randomIndex]?.src.large || images[0]?.src.large || ''
     });
 
     // Petit délai pour éviter le rate limiting
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 200));
   }
 
   return results;
+}
+
+/**
+ * Extrait des mots-clés simples en anglais pour Pexels
+ */
+function extractKeywords(text: string): string {
+  // Traductions françaises vers anglais pour les termes courants
+  const translations: Record<string, string> = {
+    'mystère': 'mystery', 'mystérieux': 'mystery', 'mystérieuse': 'mystery',
+    'disparition': 'missing person', 'disparu': 'missing',
+    'océan': 'ocean', 'mer': 'ocean sea', 'plage': 'beach',
+    'nuit': 'night dark', 'sombre': 'dark shadow',
+    'forêt': 'forest', 'jungle': 'jungle',
+    'avion': 'airplane aircraft', 'bateau': 'ship boat',
+    'montagne': 'mountain', 'désert': 'desert',
+    'ville': 'city urban', 'rue': 'street',
+    'ciel': 'sky clouds', 'étoiles': 'stars night sky',
+    'tempête': 'storm lightning', 'orage': 'storm',
+    'feu': 'fire flames', 'eau': 'water',
+    'ancien': 'ancient old', 'antique': 'ancient ruins',
+    'pyramide': 'pyramid egypt', 'temple': 'temple ancient',
+    'guerre': 'war military', 'bataille': 'battle war',
+    'science': 'science laboratory', 'technologie': 'technology',
+    'espace': 'space cosmos', 'univers': 'universe galaxy',
+    'histoire': 'history historical', 'historique': 'historical',
+    'crime': 'crime detective', 'enquête': 'investigation detective',
+    'document': 'documents papers', 'archives': 'archive documents',
+    'secret': 'secret mystery', 'caché': 'hidden secret',
+    'découverte': 'discovery exploration', 'exploration': 'exploration adventure',
+    'noël': 'christmas winter', 'père noël': 'santa christmas',
+    'hiver': 'winter snow', 'neige': 'snow winter',
+    'extraterrestre': 'alien ufo', 'ovni': 'ufo alien',
+    'fantôme': 'ghost haunted', 'hanté': 'haunted ghost',
+    'paranormal': 'paranormal supernatural', 'surnaturel': 'supernatural',
+  };
+
+  let query = text.toLowerCase();
+  
+  // Appliquer les traductions
+  for (const [fr, en] of Object.entries(translations)) {
+    if (query.includes(fr)) {
+      return en;
+    }
+  }
+  
+  // Extraire les noms propres et mots importants
+  const words = text
+    .replace(/[^\w\sàâäéèêëïîôùûüç]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 4)
+    .slice(0, 3);
+  
+  return words.join(' ') || 'dramatic cinematic scene';
+}
+
+/**
+ * Génère une recherche générique basée sur le contexte
+ */
+function getGenericQuery(text: string): string {
+  const lowerText = text.toLowerCase();
+  
+  if (lowerText.includes('bermud') || lowerText.includes('océan') || lowerText.includes('mer') || lowerText.includes('bateau')) {
+    return 'ocean sea storm ship';
+  }
+  if (lowerText.includes('avion') || lowerText.includes('crash') || lowerText.includes('aérien')) {
+    return 'airplane sky clouds';
+  }
+  if (lowerText.includes('crime') || lowerText.includes('enquête') || lowerText.includes('police')) {
+    return 'detective investigation documents';
+  }
+  if (lowerText.includes('guerre') || lowerText.includes('nazi') || lowerText.includes('militaire')) {
+    return 'war military historical';
+  }
+  if (lowerText.includes('égypte') || lowerText.includes('pharaon') || lowerText.includes('pyramide')) {
+    return 'pyramid egypt ancient';
+  }
+  if (lowerText.includes('noël') || lowerText.includes('père noël') || lowerText.includes('santa')) {
+    return 'christmas winter snow';
+  }
+  if (lowerText.includes('espace') || lowerText.includes('étoile') || lowerText.includes('galaxie')) {
+    return 'space galaxy stars cosmos';
+  }
+  if (lowerText.includes('forêt') || lowerText.includes('nature') || lowerText.includes('sauvage')) {
+    return 'forest nature wilderness';
+  }
+  
+  return 'dramatic documentary cinematic';
 }
