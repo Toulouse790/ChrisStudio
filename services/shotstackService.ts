@@ -340,100 +340,57 @@ export async function generateVideoWithShotstack(
 /**
  * Upload un fichier audio vers un service de stockage temporaire
  * (Shotstack a besoin d'une URL publique)
- * Utilise notre Worker Cloudflare en priorité (pas de CORS)
+ * Utilise notre Worker Cloudflare comme proxy pour éviter CORS
  */
 export async function uploadAudioForShotstack(audioBlob: Blob): Promise<string | null> {
-  console.log('🎵 Upload audio pour Shotstack, taille:', audioBlob.size, 'bytes');
+  console.log('🎵 Upload audio pour Shotstack, taille:', (audioBlob.size / 1024 / 1024).toFixed(2), 'MB');
   
   const ttsApiUrl = import.meta.env.VITE_TTS_API_URL;
   
-  // Option 1: Notre Worker Cloudflare (priorité - pas de CORS)
-  if (ttsApiUrl) {
+  // L'audio est trop gros pour base64 via JSON si > 5MB
+  // On va essayer plusieurs approches
+  
+  // Option 1: Upload via Worker Cloudflare (R2 ou services externes)
+  if (ttsApiUrl && audioBlob.size < 15 * 1024 * 1024) { // Max 15MB pour base64 via Worker
     try {
       console.log('🎵 Essai upload via Worker Cloudflare...');
-      const arrayBuffer = await audioBlob.arrayBuffer();
       
-      const response = await fetch(`${ttsApiUrl}/upload`, {
+      // Convertir en base64
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const base64Audio = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+      
+      const response = await fetch(`${ttsApiUrl}/upload-audio`, {
         method: 'POST',
-        headers: { 'Content-Type': 'audio/mpeg' },
-        body: arrayBuffer
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          audio: base64Audio,
+          filename: `voiceover_${Date.now()}.mp3`
+        })
       });
 
       if (response.ok) {
         const data = await response.json();
         if (data.url) {
-          console.log('✅ Audio uploadé via Worker Cloudflare:', data.url);
+          console.log('✅ Audio uploadé via Worker:', data.url, '| Storage:', data.storage);
           return data.url;
         }
+        if (data.error) {
+          console.warn('Worker error:', data.error);
+        }
+      } else {
+        const errorText = await response.text();
+        console.warn('Worker upload failed:', response.status, errorText);
       }
     } catch (e) {
       console.warn('Worker Cloudflare upload failed:', e);
     }
   }
 
-  // Option 2: 0x0.st - service de partage de fichiers simple et fiable
-  try {
-    console.log('🎵 Essai upload via 0x0.st...');
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'voiceover.mp3');
-
-    const response = await fetch('https://0x0.st', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (response.ok) {
-      const url = await response.text();
-      console.log('✅ Audio uploadé via 0x0.st:', url.trim());
-      return url.trim();
-    }
-  } catch (e) {
-    console.warn('0x0.st failed:', e);
-  }
-
-  // Option 3: catbox.moe - alternative fiable
-  try {
-    console.log('🎵 Essai upload via catbox.moe...');
-    const formData = new FormData();
-    formData.append('reqtype', 'fileupload');
-    formData.append('fileToUpload', audioBlob, 'voiceover.mp3');
-
-    const response = await fetch('https://catbox.moe/user/api.php', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (response.ok) {
-      const url = await response.text();
-      console.log('✅ Audio uploadé via catbox.moe:', url.trim());
-      return url.trim();
-    }
-  } catch (e) {
-    console.warn('catbox.moe failed:', e);
-  }
-
-  // Option 4: file.io en fallback
-  try {
-    console.log('🎵 Essai upload via file.io...');
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'voiceover.mp3');
-
-    const response = await fetch('https://file.io', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.link) {
-        console.log('✅ Audio uploadé via file.io:', data.link);
-        return data.link;
-      }
-    }
-  } catch (e) {
-    console.warn('file.io failed:', e);
-  }
-
-  console.error('❌ Tous les uploads audio ont échoué');
+  // Si l'audio est trop gros ou le Worker échoue, on ne peut pas utiliser Shotstack avec audio
+  // L'assemblage navigateur sera utilisé à la place (garde l'audio)
+  console.warn('⚠️ Upload audio échoué - L\'assemblage navigateur sera utilisé (avec audio)');
+  console.log('💡 Pour Shotstack avec audio, active Cloudflare R2 dans le dashboard');
   return null;
 }

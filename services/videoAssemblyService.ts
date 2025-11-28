@@ -170,12 +170,12 @@ function drawImageCover(
 }
 
 /**
- * Assemble les scènes en une vidéo - VERSION RAPIDE
- * Génère en temps réel (durée ≈ durée de la vidéo, pas des heures)
+ * Assemble les scènes en une vidéo AVEC AUDIO
+ * L'audio est mixé directement dans le flux vidéo
  */
 export async function assembleVideo(
   scenes: VideoScene[],
-  _audioBlob: Blob | null, // Audio géré séparément pour YouTube
+  audioBlob: Blob | null,
   config: Partial<VideoConfig> = {},
   onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
@@ -216,12 +216,84 @@ export async function assembleVideo(
   const images = await Promise.all(imagePromises);
   onProgress?.(30, `${images.length} images chargées`);
   
-  // Configurer MediaRecorder - HAUTE QUALITÉ
-  const stream = canvas.captureStream(fullConfig.fps);
+  // Préparer l'audio si disponible
+  let audioElement: HTMLAudioElement | null = null;
+  let audioContext: AudioContext | null = null;
+  let audioSource: MediaElementAudioSourceNode | null = null;
+  let audioDestination: MediaStreamAudioDestinationNode | null = null;
   
-  const mediaRecorder = new MediaRecorder(stream, {
-    mimeType: 'video/webm;codecs=vp9',  // VP9 meilleure qualité
-    videoBitsPerSecond: 12000000 // 12 Mbps pour qualité YouTube
+  if (audioBlob && audioBlob.size > 1000) {
+    try {
+      onProgress?.(32, 'Préparation de l\'audio...');
+      audioElement = new Audio();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audioElement.src = audioUrl;
+      audioElement.preload = 'auto';
+      
+      // Attendre que l'audio soit VRAIMENT chargé avec sa durée
+      await new Promise<void>((resolve, reject) => {
+        const checkDuration = () => {
+          if (audioElement!.duration && !isNaN(audioElement!.duration) && audioElement!.duration > 0) {
+            console.log('🔊 Audio chargé, durée:', audioElement!.duration, 's');
+            resolve();
+          }
+        };
+        
+        audioElement!.onloadedmetadata = checkDuration;
+        audioElement!.oncanplaythrough = checkDuration;
+        audioElement!.ondurationchange = checkDuration;
+        audioElement!.onerror = () => reject(new Error('Audio load failed'));
+        
+        // Vérifier immédiatement au cas où
+        checkDuration();
+        
+        // Timeout avec fallback
+        setTimeout(() => {
+          if (!audioElement!.duration || isNaN(audioElement!.duration)) {
+            console.warn('⚠️ Audio duration timeout, continuant sans audio');
+            reject(new Error('Audio duration timeout'));
+          } else {
+            resolve();
+          }
+        }, 5000);
+      });
+      
+      audioContext = new AudioContext();
+      audioSource = audioContext.createMediaElementSource(audioElement);
+      audioDestination = audioContext.createMediaStreamDestination();
+      audioSource.connect(audioDestination);
+      
+      console.log('🔊 Audio préparé pour le mixage, durée:', audioElement.duration, 's');
+    } catch (e) {
+      console.warn('⚠️ Impossible de préparer l\'audio:', e);
+      audioElement = null;
+      audioContext = null;
+      audioSource = null;
+      audioDestination = null;
+    }
+  }
+  
+  // Configurer MediaRecorder avec vidéo ET audio
+  const videoStream = canvas.captureStream(fullConfig.fps);
+  
+  // Combiner vidéo et audio dans un seul stream
+  let combinedStream: MediaStream;
+  if (audioDestination) {
+    const audioTracks = audioDestination.stream.getAudioTracks();
+    combinedStream = new MediaStream([
+      ...videoStream.getVideoTracks(),
+      ...audioTracks
+    ]);
+    console.log('🎬 Stream combiné: vidéo + audio');
+  } else {
+    combinedStream = videoStream;
+    console.log('🎬 Stream vidéo seul (pas d\'audio)');
+  }
+  
+  const mediaRecorder = new MediaRecorder(combinedStream, {
+    mimeType: 'video/webm;codecs=vp9,opus', // VP9 vidéo + Opus audio
+    videoBitsPerSecond: 12000000, // 12 Mbps vidéo
+    audioBitsPerSecond: 128000   // 128 kbps audio
   });
   
   const chunks: Blob[] = [];
@@ -230,18 +302,37 @@ export async function assembleVideo(
   };
   
   return new Promise((resolve, reject) => {
-    mediaRecorder.onstop = () => {
+    mediaRecorder.onstop = async () => {
+      // Cleanup audio
+      if (audioElement) {
+        audioElement.pause();
+        URL.revokeObjectURL(audioElement.src);
+      }
+      if (audioContext) {
+        await audioContext.close();
+      }
+      
       const videoBlob = new Blob(chunks, { type: 'video/webm' });
-      onProgress?.(100, 'Vidéo HD créée !');
+      console.log('✅ Vidéo assemblée:', (videoBlob.size / 1024 / 1024).toFixed(2), 'MB');
+      onProgress?.(100, 'Vidéo HD avec audio créée !');
       resolve(videoBlob);
     };
     
-    mediaRecorder.onerror = (e) => reject(e);
+    mediaRecorder.onerror = (e) => {
+      console.error('❌ MediaRecorder error:', e);
+      reject(e);
+    };
+    
     mediaRecorder.start(1000);
+    
+    // Démarrer l'audio en même temps que l'enregistrement
+    if (audioElement) {
+      audioElement.currentTime = 0;
+      audioElement.play().catch(e => console.warn('Audio play failed:', e));
+    }
     
     let sceneIndex = 0;
     let sceneStartTime = Date.now();
-    let animationFrame = 0;
     
     // Fonction pour dessiner une scène avec effet Ken Burns
     const drawScene = (index: number, progress: number = 0) => {
@@ -279,14 +370,17 @@ export async function assembleVideo(
       
       // Redessiner avec progression pour Ken Burns
       drawScene(sceneIndex, sceneProgress);
-      animationFrame++;
       
       if (sceneElapsed >= currentDuration) {
         sceneIndex++;
         sceneStartTime = now;
         
         if (sceneIndex >= scenes.length) {
-          setTimeout(() => mediaRecorder.stop(), 500);
+          // Attendre un peu puis arrêter
+          setTimeout(() => {
+            if (audioElement) audioElement.pause();
+            mediaRecorder.stop();
+          }, 500);
           return;
         }
         

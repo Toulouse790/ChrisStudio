@@ -1,9 +1,17 @@
 /**
  * Media Service - Génération d'images et vidéos via APIs externes
- * Utilise Pexels pour les médias stock
+ * 
+ * PRIORITÉ:
+ * 1. Gemini améliore les recherches Pexels (descriptions intelligentes)
+ * 2. Pexels (stock)
  */
 
+import { generateSceneImage, isGeminiImagenAvailable } from './imageGenerationService';
+
 const PEXELS_API_KEY = import.meta.env.VITE_PEXELS_API_KEY || '0LWSqbSenCvFrMUYpkCcofv1XDYJrf9CzVJTmSQLaI5apfbWxnl6zDQ0';
+
+// Utiliser Gemini pour améliorer les recherches Pexels
+const USE_AI_IMAGES = true;
 
 interface PexelsVideo {
   id: number;
@@ -122,45 +130,55 @@ export async function downloadImage(url: string): Promise<Blob> {
 
 /**
  * Génère des clips vidéo pour chaque scène du script
- * Améliore les recherches Pexels avec des mots-clés pertinents
+ * NOUVEAU: Utilise Gemini Imagen pour les images IA
  */
 export async function generateSceneMedia(
   scenes: Array<{ id: number; text: string; imagePrompt: string; duration: number }>,
   onProgress?: (progress: number, message: string) => void
 ): Promise<Array<{ sceneId: number; videoUrl: string; imageUrl: string }>> {
   const results: Array<{ sceneId: number; videoUrl: string; imageUrl: string }> = [];
+  
+  const useAI = USE_AI_IMAGES && isGeminiImagenAvailable();
+  console.log(`🎨 Mode images: ${useAI ? 'Gemini Imagen (IA)' : 'Pexels (stock)'}`);
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
     const progress = ((i + 1) / scenes.length) * 100;
-    onProgress?.(progress, `Recherche média scène ${i + 1}/${scenes.length}...`);
-
-    // Améliorer la recherche avec des mots-clés simples en anglais
-    let searchQuery = extractKeywords(scene.imagePrompt || scene.text);
     
-    // Chercher des images (plus fiable que les vidéos)
-    let images = await searchImages(searchQuery, 5);
+    let imageUrl = '';
     
-    // Si pas de résultats, essayer avec des termes plus génériques
-    if (images.length === 0) {
-      const fallbackQuery = getGenericQuery(scene.text);
-      images = await searchImages(fallbackQuery, 5);
+    if (useAI) {
+      // Mode IA: Gemini Imagen
+      onProgress?.(progress, `🎨 Génération IA scène ${i + 1}/${scenes.length}...`);
+      imageUrl = await generateSceneImage(scene.imagePrompt, scene.text);
+    } else {
+      // Mode Stock: Pexels
+      onProgress?.(progress, `📷 Recherche média scène ${i + 1}/${scenes.length}...`);
+      
+      let searchQuery = extractKeywords(scene.imagePrompt || scene.text);
+      let images = await searchImages(searchQuery, 5);
+      
+      if (images.length === 0) {
+        const fallbackQuery = getGenericQuery(scene.text);
+        images = await searchImages(fallbackQuery, 5);
+      }
+      
+      const randomIndex = Math.floor(Math.random() * Math.min(3, images.length));
+      imageUrl = images[randomIndex]?.src.large2x || images[randomIndex]?.src.large || images[0]?.src.large || '';
     }
     
-    // Chercher des vidéos aussi
+    // Chercher des vidéos sur Pexels (optionnel, pour enrichir)
+    const searchQuery = extractKeywords(scene.imagePrompt || scene.text);
     const videos = await searchVideos(searchQuery, 3);
-
-    // Prendre une image aléatoire parmi les résultats pour varier
-    const randomIndex = Math.floor(Math.random() * Math.min(3, images.length));
     
     results.push({
       sceneId: scene.id,
       videoUrl: videos[0] ? getBestVideoUrl(videos[0]) : '',
-      imageUrl: images[randomIndex]?.src.large2x || images[randomIndex]?.src.large || images[0]?.src.large || ''
+      imageUrl: imageUrl || 'https://images.pexels.com/photos/1229042/pexels-photo-1229042.jpeg'
     });
 
-    // Petit délai pour éviter le rate limiting
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Délai pour éviter le rate limiting (plus long pour IA)
+    await new Promise(resolve => setTimeout(resolve, useAI ? 1000 : 200));
   }
 
   return results;
