@@ -1,0 +1,5 @@
+{
+  "name": "chrisstudio-tts",
+  "compatibility_date": "2025-11-28",
+  "main": "cloudflare-worker-tts.js"
+}
