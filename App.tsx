@@ -155,6 +155,9 @@ const App: React.FC = () => {
     setCalendar(updatedCalendar);
   };
 
+  // Store generated videos for upload
+  const [generatedVideos, setGeneratedVideos] = useState<Map<string, GeneratedVideo>>(new Map());
+
   const handleGenerateFromCalendar = useCallback(async (item: CalendarItem) => {
     // Find the channel for this item
     const channel = channels.find(c => c.id === item.channelId);
@@ -172,21 +175,25 @@ const App: React.FC = () => {
     }
 
     try {
-      // Generate the video content
+      // Generate the video content (now generates REAL video)
       const generatedVideo = await generateVideo(
         item,
         channel,
         (progress) => {
           console.log(`[${item.title}] ${progress.message} (${progress.progress}%)`);
+          // Could update UI with progress here
         }
       );
+
+      // Store generated video for later upload
+      setGeneratedVideos(prev => new Map(prev).set(item.id, generatedVideo));
 
       // Create a project from the generated video
       const newProject: GeneratedAsset = {
         id: generatedVideo.id,
         channelName: channel.name,
         thumbnailImage: generatedVideo.thumbnailUrl || null,
-        videoUrl: '', // Placeholder - actual video would be assembled externally
+        videoUrl: generatedVideo.finalVideoUrl || '',
         timestamp: new Date(),
         metadata: {
           title: item.title,
@@ -207,17 +214,15 @@ const App: React.FC = () => {
         setCalendar({ ...calendar, items: updatedItems });
       }
 
-      // Auto-upload if channel is connected
-      if (isChannelConnected(channel.id)) {
-        console.log('Channel connected, preparing upload...');
-        // In production, this would trigger the actual upload
-        // For now, we mark it as ready for manual upload
-      }
-
-      console.log('Video generated successfully:', generatedVideo);
+      console.log('✅ Vidéo générée avec succès:', {
+        title: item.title,
+        hasVideo: !!generatedVideo.videoBlob,
+        hasThumbnail: !!generatedVideo.thumbnailBlob,
+        hasVoiceover: !!generatedVideo.voiceoverBlob
+      });
       
     } catch (error) {
-      console.error('Error generating video:', error);
+      console.error('❌ Erreur génération vidéo:', error);
       
       // Update status to error (back to approved for retry)
       if (calendar) {
@@ -228,6 +233,80 @@ const App: React.FC = () => {
       }
     }
   }, [channels, calendar]);
+
+  // Handle YouTube upload for a calendar item
+  const handleUploadToYouTube = useCallback(async (item: CalendarItem) => {
+    const channel = channels.find(c => c.id === item.channelId);
+    if (!channel) {
+      alert('Chaîne non trouvée');
+      return;
+    }
+
+    if (!isChannelConnected(channel.id)) {
+      alert('Chaîne non connectée à YouTube. Connectez-vous d\'abord dans les paramètres.');
+      return;
+    }
+
+    const generatedVideo = generatedVideos.get(item.id);
+    if (!generatedVideo || !generatedVideo.videoBlob) {
+      alert('Aucune vidéo générée. Générez d\'abord la vidéo.');
+      return;
+    }
+
+    // Update status to publishing
+    if (calendar) {
+      const updatedItems = calendar.items.map(i => 
+        i.id === item.id ? { ...i, status: ContentStatus.PUBLISHING } : i
+      );
+      setCalendar({ ...calendar, items: updatedItems });
+    }
+
+    try {
+      const result = await uploadToYouTube(
+        {
+          title: item.title,
+          description: item.description,
+          tags: ['IA', 'Automatisé', channel.name],
+          categoryId: '22',
+          privacyStatus: 'private', // Start as private for review
+          videoFile: generatedVideo.videoBlob,
+          thumbnailFile: generatedVideo.thumbnailBlob,
+          channelId: channel.id,
+        },
+        (progress) => {
+          console.log(`Upload: ${progress.percentage}% - ${progress.status}`);
+        }
+      );
+
+      if (result.success) {
+        console.log('✅ Upload réussi! Video ID:', result.videoId);
+        
+        // Update status to published
+        if (calendar) {
+          const updatedItems = calendar.items.map(i => 
+            i.id === item.id ? { ...i, status: ContentStatus.PUBLISHED } : i
+          );
+          setCalendar({ ...calendar, items: updatedItems });
+        }
+        
+        alert(`Vidéo uploadée avec succès!\nID: ${result.videoId}\nStatut: Privée (vérifiez avant de publier)`);
+      } else {
+        throw new Error(result.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('❌ Erreur upload:', error);
+      
+      // Revert status to ready
+      if (calendar) {
+        const updatedItems = calendar.items.map(i => 
+          i.id === item.id ? { ...i, status: ContentStatus.READY } : i
+        );
+        setCalendar({ ...calendar, items: updatedItems });
+      }
+      
+      alert(`Erreur d'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    }
+  }, [channels, calendar, generatedVideos]);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -364,6 +443,7 @@ const App: React.FC = () => {
             calendar={calendar}
             onCalendarUpdate={handleCalendarUpdate}
             onGenerateVideo={handleGenerateFromCalendar}
+            onUploadVideo={handleUploadToYouTube}
             onProjectCreated={handleProjectCreated}
             watermarkSettings={watermarkSettings}
             introOutroSettings={introOutroSettings}

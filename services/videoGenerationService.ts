@@ -1,10 +1,14 @@
 /**
  * Video Generation Service
  * Generates complete videos using AI (script, images, voiceover)
+ * PRODUCTION VERSION - Uses real APIs
  */
 
 import { GoogleGenAI } from '@google/genai';
-import { CalendarItem, Channel, ContentStatus } from '../types';
+import { CalendarItem, Channel } from '../types';
+import { generateSceneMedia, searchImages } from './mediaService';
+import { generateVoiceover, isElevenLabsAvailable } from './audioService';
+import { assembleVideo, generateThumbnail as createThumbnail } from './videoAssemblyService';
 
 // Get API key
 const getApiKey = (): string => {
@@ -20,6 +24,9 @@ export interface GeneratedVideo {
   contentItem: CalendarItem;
   script: string;
   scenes: GeneratedScene[];
+  voiceoverBlob?: Blob;
+  thumbnailBlob?: Blob;
+  videoBlob?: Blob;
   voiceoverUrl?: string;
   thumbnailUrl?: string;
   finalVideoUrl?: string;
@@ -33,6 +40,7 @@ export interface GeneratedScene {
   text: string;
   imagePrompt: string;
   imageUrl?: string;
+  videoUrl?: string;
   duration: number; // seconds
 }
 
@@ -63,34 +71,63 @@ export const generateVideo = async (
 
   try {
     // Step 1: Generate Script
-    onProgress?.({ stage: 'script', progress: 10, message: 'Génération du script...' });
+    onProgress?.({ stage: 'script', progress: 5, message: 'Génération du script...' });
     video.status = 'generating-script';
     video.script = await generateScript(contentItem, channel);
-    video.progress = 25;
+    video.progress = 15;
 
     // Step 2: Parse script into scenes
-    onProgress?.({ stage: 'scenes', progress: 30, message: 'Découpage en scènes...' });
+    onProgress?.({ stage: 'scenes', progress: 18, message: 'Découpage en scènes...' });
     video.scenes = parseScriptToScenes(video.script);
-    video.progress = 35;
+    video.progress = 20;
 
     // Step 3: Generate image prompts for each scene
-    onProgress?.({ stage: 'prompts', progress: 40, message: 'Création des prompts visuels...' });
+    onProgress?.({ stage: 'prompts', progress: 22, message: 'Création des prompts visuels...' });
     video.scenes = await generateImagePrompts(video.scenes, channel);
+    video.progress = 25;
+
+    // Step 4: Fetch real images/videos from Pexels
+    onProgress?.({ stage: 'images', progress: 28, message: 'Recherche des médias sur Pexels...' });
+    video.status = 'generating-images';
+    video.scenes = await generateSceneImages(video.scenes, (p, m) => {
+      onProgress?.({ stage: 'images', progress: 28 + (p * 0.22), message: m });
+    });
     video.progress = 50;
 
-    // Step 4: Generate images (using Gemini's image understanding for descriptions)
-    onProgress?.({ stage: 'images', progress: 55, message: 'Génération des images...' });
-    video.status = 'generating-images';
-    video.scenes = await generateSceneImages(video.scenes, onProgress);
-    video.progress = 75;
+    // Step 5: Generate voiceover
+    onProgress?.({ stage: 'audio', progress: 52, message: `Génération voix off (${isElevenLabsAvailable() ? 'ElevenLabs' : 'Navigateur'})...` });
+    video.status = 'generating-audio';
+    const voiceText = video.scenes.map(s => s.text).join('\n\n');
+    video.voiceoverBlob = await generateVoiceover(voiceText, (p, m) => {
+      onProgress?.({ stage: 'audio', progress: 52 + (p * 0.15), message: m });
+    });
+    video.voiceoverUrl = URL.createObjectURL(video.voiceoverBlob);
+    video.progress = 67;
 
-    // Step 5: Generate thumbnail
-    onProgress?.({ stage: 'thumbnail', progress: 80, message: 'Création de la miniature...' });
-    video.thumbnailUrl = await generateThumbnail(contentItem, channel);
-    video.progress = 85;
+    // Step 6: Generate thumbnail
+    onProgress?.({ stage: 'thumbnail', progress: 68, message: 'Création de la miniature...' });
+    const thumbnailImageUrl = video.scenes[0]?.imageUrl || '';
+    video.thumbnailBlob = await createThumbnail(thumbnailImageUrl, contentItem.title);
+    video.thumbnailUrl = URL.createObjectURL(video.thumbnailBlob);
+    video.progress = 70;
 
-    // Step 6: Mark as ready (audio/video assembly would need external tools)
-    onProgress?.({ stage: 'complete', progress: 100, message: 'Vidéo prête !' });
+    // Step 7: Assemble final video
+    onProgress?.({ stage: 'assembly', progress: 72, message: 'Assemblage de la vidéo...' });
+    video.status = 'assembling';
+    const videoScenes = video.scenes.map(s => ({
+      imageUrl: s.imageUrl || '',
+      videoUrl: s.videoUrl,
+      text: s.text,
+      duration: s.duration
+    }));
+    video.videoBlob = await assembleVideo(videoScenes, video.voiceoverBlob, {}, (p, m) => {
+      onProgress?.({ stage: 'assembly', progress: 72 + (p * 0.25), message: m });
+    });
+    video.finalVideoUrl = URL.createObjectURL(video.videoBlob);
+    video.progress = 97;
+
+    // Step 8: Complete
+    onProgress?.({ stage: 'complete', progress: 100, message: 'Vidéo prête à publier !' });
     video.status = 'ready';
     video.progress = 100;
 
@@ -99,34 +136,51 @@ export const generateVideo = async (
   } catch (error) {
     video.status = 'error';
     video.error = error instanceof Error ? error.message : 'Erreur inconnue';
+    console.error('Video generation error:', error);
     throw error;
   }
 };
 
 /**
- * Generate a detailed script for the video
+ * Generate a detailed script for the video - OPTIMISÉ MONETISATION
  */
 async function generateScript(item: CalendarItem, channel: Channel): Promise<string> {
   const ai = new GoogleGenAI({ apiKey: getApiKey() });
   
-  const prompt = `Tu es un scénariste expert pour YouTube. Génère un script complet pour une vidéo de 8-10 minutes.
+  const prompt = `Tu es un scénariste expert YouTube spécialisé dans les vidéos à forte rétention et monétisation.
 
 CHAÎNE: ${channel.name}
-THÈME DE LA CHAÎNE: ${channel.theme}
-TITRE DE LA VIDÉO: ${item.title}
-DESCRIPTION: ${item.description}
+THÈME: ${channel.theme}
+TITRE: ${item.title}
+SUJET: ${item.description}
 
-FORMAT DU SCRIPT:
-- Introduction accrocheuse (30 secondes)
-- 5-7 sections principales avec transitions
-- Conclusion avec appel à l'action
+OBJECTIF: Créer un script de 8-10 minutes qui MAXIMISE la rétention et l'engagement.
+
+STRUCTURE OPTIMISÉE YOUTUBE:
+1. HOOK (0-30s): Question choc ou fait surprenant pour captiver immédiatement
+2. TEASER (30s-1min): Promettre ce que le spectateur va apprendre, créer l'attente
+3. CONTENU PRINCIPAL (1-8min): 5-6 sections avec cliffhangers entre chaque
+4. TWIST/RÉVÉLATION (8-9min): Information la plus surprenante gardée pour la fin
+5. CTA + OUTRO (9-10min): Appel à l'action et teaser prochaine vidéo
+
+TECHNIQUES DE RÉTENTION:
+- Phrases courtes et percutantes
+- Questions rhétoriques régulières
+- "Mais attendez, ce n'est pas tout..."
+- "Et c'est là que ça devient vraiment intéressant..."
+- Créer de la curiosité à chaque transition
 
 STYLE:
-- Ton engageant et narratif
-- Phrases courtes pour la voix off
-- Indications visuelles entre [crochets]
+- Ton narratif captivant, comme un documentaire Netflix
+- Vocabulaire accessible mais pas simpliste
+- Indications visuelles entre [crochets] pour chaque scène
+- Chaque paragraphe = une scène visuelle distincte
 
-Génère le script complet en français:`;
+FORMAT DE SORTIE:
+Génère le script complet en français avec des paragraphes bien séparés.
+Chaque paragraphe sera une scène de la vidéo.
+
+SCRIPT:`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-2.0-flash',
@@ -201,68 +255,22 @@ Génère uniquement le JSON, sans texte autour:`;
 }
 
 /**
- * Generate images for scenes (placeholder - would use DALL-E, Midjourney, or similar)
+ * Generate images for scenes using Pexels API
  */
 async function generateSceneImages(
   scenes: GeneratedScene[], 
-  onProgress?: ProgressCallback
+  onProgress?: (progress: number, message: string) => void
 ): Promise<GeneratedScene[]> {
-  // In a real implementation, this would call an image generation API
-  // For now, we'll use placeholder images and the prompts are ready for external use
+  const mediaResults = await generateSceneMedia(scenes, onProgress);
   
-  const updatedScenes: GeneratedScene[] = [];
-  
-  for (let i = 0; i < scenes.length; i++) {
-    const scene = scenes[i];
-    const progress = 55 + (i / scenes.length) * 20;
-    
-    onProgress?.({ 
-      stage: 'images', 
-      progress, 
-      message: `Image ${i + 1}/${scenes.length}...` 
-    });
-
-    // Placeholder: In production, call image generation API here
-    // For now, generate a placeholder URL based on the prompt
-    const placeholderUrl = `https://placehold.co/1920x1080/1a1a2e/ffffff?text=Scene+${i + 1}`;
-    
-    updatedScenes.push({
+  return scenes.map((scene, index) => {
+    const media = mediaResults.find(m => m.sceneId === scene.id) || mediaResults[index];
+    return {
       ...scene,
-      imageUrl: placeholderUrl
-    });
-
-    // Simulate generation time
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-
-  return updatedScenes;
-}
-
-/**
- * Generate thumbnail for the video
- */
-async function generateThumbnail(item: CalendarItem, channel: Channel): Promise<string> {
-  const ai = new GoogleGenAI({ apiKey: getApiKey() });
-  
-  // Generate a thumbnail description/prompt
-  const prompt = `Génère une description détaillée pour une miniature YouTube accrocheuse.
-
-Titre: ${item.title}
-Chaîne: ${channel.name}
-Thème: ${channel.theme}
-
-La description doit être en anglais, optimisée pour un générateur d'images:`;
-
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
-    contents: prompt
+      imageUrl: media?.imageUrl || '',
+      videoUrl: media?.videoUrl || ''
+    };
   });
-
-  // Store the prompt for external image generation
-  const thumbnailPrompt = response.text || item.title;
-  
-  // Placeholder URL
-  return `https://placehold.co/1280x720/6366f1/ffffff?text=${encodeURIComponent(item.title.substring(0, 30))}`;
 }
 
 /**
@@ -272,10 +280,10 @@ export const getGenerationStatusText = (status: GeneratedVideo['status']): strin
   const statusMap: Record<GeneratedVideo['status'], string> = {
     'pending': 'En attente',
     'generating-script': 'Génération du script...',
-    'generating-images': 'Création des visuels...',
-    'generating-audio': 'Génération audio...',
-    'assembling': 'Assemblage final...',
-    'ready': 'Prêt',
+    'generating-images': 'Recherche médias Pexels...',
+    'generating-audio': 'Synthèse vocale...',
+    'assembling': 'Assemblage vidéo...',
+    'ready': 'Prêt à publier',
     'error': 'Erreur'
   };
   return statusMap[status] || status;
@@ -292,8 +300,56 @@ export const exportVideoData = (video: GeneratedVideo): object => {
     scenes: video.scenes.map(s => ({
       text: s.text,
       imagePrompt: s.imagePrompt,
+      imageUrl: s.imageUrl,
+      videoUrl: s.videoUrl,
       duration: s.duration
     })),
-    thumbnailPrompt: video.thumbnailUrl
+    hasVideo: !!video.videoBlob,
+    hasThumbnail: !!video.thumbnailBlob,
+    hasVoiceover: !!video.voiceoverBlob
   };
+};
+
+/**
+ * Download the generated video
+ */
+export const downloadGeneratedVideo = (video: GeneratedVideo): void => {
+  if (!video.videoBlob) {
+    throw new Error('No video available to download');
+  }
+  
+  const url = URL.createObjectURL(video.videoBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${video.contentItem.title.replace(/[^a-zA-Z0-9]/g, '_')}.webm`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+/**
+ * Get the video file for YouTube upload
+ */
+export const getVideoFile = (video: GeneratedVideo): File | null => {
+  if (!video.videoBlob) return null;
+  
+  return new File(
+    [video.videoBlob], 
+    `${video.contentItem.title.replace(/[^a-zA-Z0-9]/g, '_')}.webm`,
+    { type: 'video/webm' }
+  );
+};
+
+/**
+ * Get the thumbnail file for YouTube upload
+ */
+export const getThumbnailFile = (video: GeneratedVideo): File | null => {
+  if (!video.thumbnailBlob) return null;
+  
+  return new File(
+    [video.thumbnailBlob],
+    `thumbnail_${video.id}.jpg`,
+    { type: 'image/jpeg' }
+  );
 };

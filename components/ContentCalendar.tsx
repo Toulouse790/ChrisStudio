@@ -41,6 +41,7 @@ interface ContentCalendarProps {
   calendar: ContentCalendar | null;
   onCalendarUpdate: (calendar: ContentCalendar) => void;
   onGenerateVideo: (item: CalendarItem) => void;
+  onUploadVideo?: (item: CalendarItem) => void;
   onProjectCreated?: (project: GeneratedAsset) => void;
   watermarkSettings?: WatermarkSettings;
   introOutroSettings?: IntroOutroSettings;
@@ -52,6 +53,7 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
   calendar,
   onCalendarUpdate,
   onGenerateVideo,
+  onUploadVideo,
   onProjectCreated,
   watermarkSettings,
   introOutroSettings,
@@ -181,6 +183,7 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
       case ContentStatus.REJECTED: return 'bg-red-500/20 text-red-400 border-red-500/30';
       case ContentStatus.GENERATING: return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
       case ContentStatus.READY: return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
+      case ContentStatus.PUBLISHING: return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
       case ContentStatus.PUBLISHED: return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
@@ -194,6 +197,7 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
       case ContentStatus.REJECTED: return 'Rejeté';
       case ContentStatus.GENERATING: return 'En cours...';
       case ContentStatus.READY: return 'Prêt';
+      case ContentStatus.PUBLISHING: return 'Upload...';
       case ContentStatus.PUBLISHED: return 'Publié';
       default: return status;
     }
@@ -472,13 +476,9 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
                                     <CheckIcon className="w-4 h-4" />
                                     Prêt
                                   </span>
-                                  {isChannelConnected(item.channelId) ? (
+                                  {isChannelConnected(item.channelId) && onUploadVideo ? (
                                     <button
-                                      onClick={() => {
-                                        // TODO: Implement actual upload
-                                        console.log('Upload to YouTube:', item.title);
-                                        alert(`Upload vers YouTube de: ${item.title}\n\nCette fonctionnalité sera disponible prochainement.`);
-                                      }}
+                                      onClick={() => onUploadVideo(item)}
                                       className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
                                       aria-label="Publier sur YouTube"
                                     >
@@ -491,6 +491,18 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
                                     </span>
                                   )}
                                 </>
+                              )}
+                              {item.status === ContentStatus.PUBLISHING && (
+                                <span className="flex items-center gap-2 px-3 py-2 bg-orange-600/20 text-orange-400 rounded-lg text-sm">
+                                  <div className="w-4 h-4 border-2 border-t-transparent border-orange-400 rounded-full animate-spin"></div>
+                                  Upload en cours...
+                                </span>
+                              )}
+                              {item.status === ContentStatus.PUBLISHED && (
+                                <span className="flex items-center gap-2 px-3 py-2 bg-emerald-600/20 text-emerald-400 rounded-lg text-sm">
+                                  <CheckIcon className="w-4 h-4" />
+                                  Publié ✓
+                                </span>
                               )}
                             </div>
                           )}

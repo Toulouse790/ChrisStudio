@@ -104,6 +104,7 @@ export enum ContentStatus {
   REJECTED = 'rejected',      // Rejeté
   GENERATING = 'generating',  // En cours de génération
   READY = 'ready',            // Vidéo prête
+  PUBLISHING = 'publishing',  // Upload en cours vers YouTube
   SCHEDULED = 'scheduled',    // Planifié pour publication
   PUBLISHED = 'published',    // Publié sur YouTube
 }
