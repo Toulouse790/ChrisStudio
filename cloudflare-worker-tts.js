@@ -1,25 +1,23 @@
 /**
- * Cloudflare Worker - TTS Proxy
+ * Cloudflare Worker - TTS Proxy + Audio Upload
  * 
- * Déployez ce worker sur Cloudflare (gratuit):
- * 1. Allez sur https://dash.cloudflare.com/
- * 2. Workers & Pages > Create Application > Create Worker
- * 3. Collez ce code
- * 4. Ajoutez la variable d'environnement GOOGLE_TTS_API_KEY
- * 5. Copiez l'URL du worker dans VITE_TTS_API_URL
- * 
- * Pour obtenir GOOGLE_TTS_API_KEY (gratuit jusqu'à 1M chars/mois):
- * 1. https://console.cloud.google.com/
- * 2. Activez "Cloud Text-to-Speech API"
- * 3. Créez une clé API dans "APIs & Services > Credentials"
+ * Routes:
+ * - POST / : TTS (text to speech)
+ * - POST /upload : Upload audio, returns public URL
+ * - GET /audio/:id : Serve uploaded audio
  */
+
+// Store audio temporarily (in-memory, resets on worker restart)
+const audioStore = new Map();
 
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+    
     // CORS headers
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     };
 
@@ -28,6 +26,60 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
+    // Route: GET /audio/:id - Serve uploaded audio
+    if (request.method === 'GET' && url.pathname.startsWith('/audio/')) {
+      const id = url.pathname.replace('/audio/', '');
+      const audioData = audioStore.get(id);
+      
+      if (!audioData) {
+        return new Response('Audio not found', { status: 404, headers: corsHeaders });
+      }
+      
+      return new Response(audioData, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'audio/mpeg',
+          'Cache-Control': 'public, max-age=3600'
+        }
+      });
+    }
+
+    // Route: POST /upload - Upload audio file
+    if (request.method === 'POST' && url.pathname === '/upload') {
+      try {
+        const audioData = await request.arrayBuffer();
+        const id = crypto.randomUUID();
+        
+        // Store audio (limit to 10MB)
+        if (audioData.byteLength > 10 * 1024 * 1024) {
+          return new Response(JSON.stringify({ error: 'File too large (max 10MB)' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        audioStore.set(id, new Uint8Array(audioData));
+        
+        // Clean old entries (keep max 10)
+        if (audioStore.size > 10) {
+          const firstKey = audioStore.keys().next().value;
+          audioStore.delete(firstKey);
+        }
+        
+        const audioUrl = `${url.origin}/audio/${id}`;
+        
+        return new Response(JSON.stringify({ url: audioUrl, id }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // Route: POST / - TTS
     if (request.method !== 'POST') {
       return new Response('Method not allowed', { status: 405, headers: corsHeaders });
     }

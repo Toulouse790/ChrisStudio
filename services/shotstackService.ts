@@ -340,12 +340,38 @@ export async function generateVideoWithShotstack(
 /**
  * Upload un fichier audio vers un service de stockage temporaire
  * (Shotstack a besoin d'une URL publique)
- * Essaie plusieurs services pour maximiser les chances de succès
+ * Utilise notre Worker Cloudflare en priorité (pas de CORS)
  */
 export async function uploadAudioForShotstack(audioBlob: Blob): Promise<string | null> {
   console.log('🎵 Upload audio pour Shotstack, taille:', audioBlob.size, 'bytes');
   
-  // Option 1: 0x0.st - service de partage de fichiers simple et fiable
+  const ttsApiUrl = import.meta.env.VITE_TTS_API_URL;
+  
+  // Option 1: Notre Worker Cloudflare (priorité - pas de CORS)
+  if (ttsApiUrl) {
+    try {
+      console.log('🎵 Essai upload via Worker Cloudflare...');
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      
+      const response = await fetch(`${ttsApiUrl}/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'audio/mpeg' },
+        body: arrayBuffer
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.url) {
+          console.log('✅ Audio uploadé via Worker Cloudflare:', data.url);
+          return data.url;
+        }
+      }
+    } catch (e) {
+      console.warn('Worker Cloudflare upload failed:', e);
+    }
+  }
+
+  // Option 2: 0x0.st - service de partage de fichiers simple et fiable
   try {
     console.log('🎵 Essai upload via 0x0.st...');
     const formData = new FormData();
@@ -365,7 +391,7 @@ export async function uploadAudioForShotstack(audioBlob: Blob): Promise<string |
     console.warn('0x0.st failed:', e);
   }
 
-  // Option 2: catbox.moe - alternative fiable
+  // Option 3: catbox.moe - alternative fiable
   try {
     console.log('🎵 Essai upload via catbox.moe...');
     const formData = new FormData();
@@ -386,7 +412,7 @@ export async function uploadAudioForShotstack(audioBlob: Blob): Promise<string |
     console.warn('catbox.moe failed:', e);
   }
 
-  // Option 3: file.io en fallback
+  // Option 4: file.io en fallback
   try {
     console.log('🎵 Essai upload via file.io...');
     const formData = new FormData();
