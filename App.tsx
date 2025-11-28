@@ -2,7 +2,7 @@
  * ChrisStudio - Plateforme de Création Vidéo IA
  * © 2025 Toulouse790. Tous droits réservés.
  */
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import ApiKeyDialog from './components/ApiKeyDialog';
 import {
   LayoutDashboardIcon,
@@ -15,7 +15,9 @@ import Dashboard from './components/Dashboard';
 import AssetsSettings from './components/AssetsSettings';
 import ContentCalendarView from './components/ContentCalendar';
 import OAuthCallback from './components/OAuthCallback';
-import {View, WatermarkSettings, IntroOutroSettings, Channel, GeneratedAsset, MusicTrack, AppSettings, ContentCalendar, CalendarItem} from './types';
+import {View, WatermarkSettings, IntroOutroSettings, Channel, GeneratedAsset, MusicTrack, AppSettings, ContentCalendar, CalendarItem, ContentStatus} from './types';
+import { generateVideo, GeneratedVideo } from './services/videoGenerationService';
+import { uploadVideo as uploadToYouTube, isChannelConnected, getValidAccessToken } from './services/youtubeService';
 
 const STORAGE_KEY = 'chrisstudio_settings_v2';
 
@@ -153,10 +155,79 @@ const App: React.FC = () => {
     setCalendar(updatedCalendar);
   };
 
-  const handleGenerateFromCalendar = (item: CalendarItem) => {
-    // La génération se fait directement dans le calendrier
-    console.log('Generating video for:', item.title);
-  };
+  const handleGenerateFromCalendar = useCallback(async (item: CalendarItem) => {
+    // Find the channel for this item
+    const channel = channels.find(c => c.id === item.channelId);
+    if (!channel) {
+      console.error('Channel not found:', item.channelId);
+      return;
+    }
+
+    // Update status to generating
+    if (calendar) {
+      const updatedItems = calendar.items.map(i => 
+        i.id === item.id ? { ...i, status: ContentStatus.GENERATING } : i
+      );
+      setCalendar({ ...calendar, items: updatedItems });
+    }
+
+    try {
+      // Generate the video content
+      const generatedVideo = await generateVideo(
+        item,
+        channel,
+        (progress) => {
+          console.log(`[${item.title}] ${progress.message} (${progress.progress}%)`);
+        }
+      );
+
+      // Create a project from the generated video
+      const newProject: GeneratedAsset = {
+        id: generatedVideo.id,
+        channelName: channel.name,
+        thumbnailImage: generatedVideo.thumbnailUrl || null,
+        videoUrl: '', // Placeholder - actual video would be assembled externally
+        timestamp: new Date(),
+        metadata: {
+          title: item.title,
+          description: item.description,
+          tags: [],
+          thumbnailIdea: `Miniature accrocheuse pour: ${item.title}`,
+          script: generatedVideo.script,
+        },
+      };
+
+      setProjects(prev => [newProject, ...prev]);
+
+      // Update calendar item status to ready
+      if (calendar) {
+        const updatedItems = calendar.items.map(i => 
+          i.id === item.id ? { ...i, status: ContentStatus.READY } : i
+        );
+        setCalendar({ ...calendar, items: updatedItems });
+      }
+
+      // Auto-upload if channel is connected
+      if (isChannelConnected(channel.id)) {
+        console.log('Channel connected, preparing upload...');
+        // In production, this would trigger the actual upload
+        // For now, we mark it as ready for manual upload
+      }
+
+      console.log('Video generated successfully:', generatedVideo);
+      
+    } catch (error) {
+      console.error('Error generating video:', error);
+      
+      // Update status to error (back to approved for retry)
+      if (calendar) {
+        const updatedItems = calendar.items.map(i => 
+          i.id === item.id ? { ...i, status: ContentStatus.APPROVED } : i
+        );
+        setCalendar({ ...calendar, items: updatedItems });
+      }
+    }
+  }, [channels, calendar]);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);

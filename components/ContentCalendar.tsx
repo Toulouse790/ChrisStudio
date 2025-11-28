@@ -22,6 +22,7 @@ import {
   approveAllProposed,
   getCalendarStats,
 } from '../services/calendarService';
+import { isChannelConnected } from '../services/youtubeService';
 import {
   CalendarIcon,
   CheckIcon,
@@ -31,6 +32,7 @@ import {
   RefreshIcon,
   PlayIcon,
   ChevronDownIcon,
+  UploadCloudIcon,
 } from './icons';
 import LoadingIndicator from './LoadingIndicator';
 
@@ -56,6 +58,7 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
   musicLibrary,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingItems, setGeneratingItems] = useState<Set<string>>(new Set());
   const [selectedChannel, setSelectedChannel] = useState<string>('all');
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -436,13 +439,58 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
                               )}
                               {(item.status === ContentStatus.APPROVED || item.status === ContentStatus.MODIFIED) && (
                                 <button
-                                  onClick={() => onGenerateVideo(item)}
-                                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm"
+                                  onClick={() => {
+                                    setGeneratingItems(prev => new Set(prev).add(item.id));
+                                    onGenerateVideo(item);
+                                  }}
+                                  disabled={generatingItems.has(item.id)}
+                                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 disabled:cursor-wait text-white rounded-lg transition-colors text-sm"
                                   aria-label="Générer la vidéo"
                                 >
-                                  <PlayIcon className="w-4 h-4" />
-                                  Générer
+                                  {generatingItems.has(item.id) ? (
+                                    <>
+                                      <RefreshIcon className="w-4 h-4 animate-spin" />
+                                      Génération...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <PlayIcon className="w-4 h-4" />
+                                      Générer
+                                    </>
+                                  )}
                                 </button>
+                              )}
+                              {item.status === ContentStatus.GENERATING && (
+                                <span className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 text-purple-400 rounded-lg text-sm">
+                                  <RefreshIcon className="w-4 h-4 animate-spin" />
+                                  En cours...
+                                </span>
+                              )}
+                              {item.status === ContentStatus.READY && (
+                                <>
+                                  <span className="flex items-center gap-2 px-3 py-2 bg-green-600/20 text-green-400 rounded-lg text-sm">
+                                    <CheckIcon className="w-4 h-4" />
+                                    Prêt
+                                  </span>
+                                  {isChannelConnected(item.channelId) ? (
+                                    <button
+                                      onClick={() => {
+                                        // TODO: Implement actual upload
+                                        console.log('Upload to YouTube:', item.title);
+                                        alert(`Upload vers YouTube de: ${item.title}\n\nCette fonctionnalité sera disponible prochainement.`);
+                                      }}
+                                      className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
+                                      aria-label="Publier sur YouTube"
+                                    >
+                                      <UploadCloudIcon className="w-4 h-4" />
+                                      Publier
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs text-gray-500">
+                                      Connectez la chaîne pour publier
+                                    </span>
+                                  )}
+                                </>
                               )}
                             </div>
                           )}
