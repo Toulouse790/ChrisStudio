@@ -206,10 +206,14 @@ const App: React.FC = () => {
 
       setProjects(prev => [newProject, ...prev]);
 
-      // Update calendar item status to ready
+      // Update calendar item status to ready AND attach the generated asset
       if (calendar) {
         const updatedItems = calendar.items.map(i => 
-          i.id === item.id ? { ...i, status: ContentStatus.READY } : i
+          i.id === item.id ? { 
+            ...i, 
+            status: ContentStatus.READY,
+            generatedAsset: newProject  // ← IMPORTANT: Attach the generated asset!
+          } : i
         );
         setCalendar({ ...calendar, items: updatedItems });
       }

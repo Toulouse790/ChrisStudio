@@ -1,110 +1,281 @@
 /**
  * Audio Service - Synthèse vocale
- * Utilise Web Speech API (gratuit) ou ElevenLabs (optionnel)
+ * 
+ * STRATÉGIE TTS (par ordre de priorité):
+ * 1. ElevenLabs - Haute qualité (si crédits disponibles)
+ * 2. API Proxy TTS - Google/Azure via backend (GRATUIT, contourne CORS)
+ * 3. Audio silencieux - Fallback ultime
+ * 
+ * Pour activer le TTS gratuit, configurez VITE_TTS_API_URL dans .env.local
  */
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
-
-interface VoiceConfig {
-  voiceId?: string; // Pour ElevenLabs
-  lang?: string;    // Pour Web Speech
-  rate?: number;
-  pitch?: number;
-}
-
-/**
- * Génère l'audio via Web Speech API (gratuit, dans le navigateur)
- * Retourne un Blob audio
- */
-export async function generateSpeechWebAPI(
-  text: string,
-  config: VoiceConfig = {}
-): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = config.lang || 'fr-FR';
-    utterance.rate = config.rate || 0.9;
-    utterance.pitch = config.pitch || 1;
-
-    // Trouver une voix française
-    const voices = speechSynthesis.getVoices();
-    const frenchVoice = voices.find(v => 
-      v.lang.startsWith('fr') && v.name.includes('Male')
-    ) || voices.find(v => v.lang.startsWith('fr')) || voices[0];
-    
-    if (frenchVoice) {
-      utterance.voice = frenchVoice;
-    }
-
-    // Web Speech API ne permet pas d'enregistrer directement
-    // On utilise MediaRecorder avec le contexte audio
-    const audioContext = new AudioContext();
-    const destination = audioContext.createMediaStreamDestination();
-    const mediaRecorder = new MediaRecorder(destination.stream, {
-      mimeType: 'audio/webm'
-    });
-    
-    const chunks: Blob[] = [];
-    mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'audio/webm' });
-      resolve(blob);
-    };
-
-    mediaRecorder.start();
-    speechSynthesis.speak(utterance);
-
-    utterance.onend = () => {
-      setTimeout(() => mediaRecorder.stop(), 500);
-    };
-
-    utterance.onerror = (e) => reject(new Error(`Speech error: ${e.error}`));
-  });
-}
+const TTS_API_URL = import.meta.env.VITE_TTS_API_URL; // URL du proxy TTS (Cloudflare Worker)
 
 /**
  * Génère l'audio via ElevenLabs API (haute qualité)
+ * Gère les textes longs en les découpant en chunks
  */
 export async function generateSpeechElevenLabs(
   text: string,
-  voiceId: string = 'pNInz6obpgDQGcFmaJgB' // Adam - voix masculine
+  voiceId: string = 'pNInz6obpgDQGcFmaJgB', // Adam - voix masculine
+  onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
   if (!ELEVENLABS_API_KEY) {
     throw new Error('ElevenLabs API key not configured');
   }
 
-  const response = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-    {
-      method: 'POST',
-      headers: {
-        'Accept': 'audio/mpeg',
-        'Content-Type': 'application/json',
-        'xi-api-key': ELEVENLABS_API_KEY
-      },
-      body: JSON.stringify({
-        text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.5,
-          use_speaker_boost: true
-        }
-      })
-    }
-  );
+  // ElevenLabs limite à 10000 caractères par requête
+  const MAX_CHARS = 9500; // Marge de sécurité
+  
+  // Nettoyer le texte
+  const cleanText = text
+    .replace(/\*\*PARAGRAPHE \d+ - [^:]+:\*\*/g, '')
+    .replace(/\*\*/g, '')
+    .replace(/PARAGRAPHE \d+ - [^:]+:/g, '')
+    .trim();
+  
+  // Si le texte est court, une seule requête
+  if (cleanText.length <= MAX_CHARS) {
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': ELEVENLABS_API_KEY
+        },
+        body: JSON.stringify({
+          text: cleanText,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.5,
+            use_speaker_boost: true
+          }
+        })
+      }
+    );
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`ElevenLabs API error: ${error}`);
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`ElevenLabs API error: ${error}`);
+    }
+
+    return response.blob();
   }
 
-  return response.blob();
+  // Texte long: découper en chunks
+  console.log(`📝 ElevenLabs: texte long (${cleanText.length} chars), découpage en chunks...`);
+  
+  const chunks: string[] = [];
+  let remaining = cleanText;
+  
+  while (remaining.length > 0) {
+    if (remaining.length <= MAX_CHARS) {
+      chunks.push(remaining);
+      break;
+    }
+    
+    // Trouver un bon point de coupure (fin de phrase)
+    let splitIndex = remaining.lastIndexOf('. ', MAX_CHARS);
+    if (splitIndex === -1 || splitIndex < MAX_CHARS * 0.5) {
+      splitIndex = remaining.lastIndexOf('! ', MAX_CHARS);
+    }
+    if (splitIndex === -1 || splitIndex < MAX_CHARS * 0.5) {
+      splitIndex = remaining.lastIndexOf('? ', MAX_CHARS);
+    }
+    if (splitIndex === -1 || splitIndex < MAX_CHARS * 0.5) {
+      splitIndex = remaining.lastIndexOf(' ', MAX_CHARS);
+    }
+    if (splitIndex === -1) splitIndex = MAX_CHARS;
+    
+    chunks.push(remaining.substring(0, splitIndex + 1).trim());
+    remaining = remaining.substring(splitIndex + 1).trim();
+  }
+  
+  console.log(`🎵 ElevenLabs: ${chunks.length} chunks à générer`);
+  
+  const audioBlobs: Blob[] = [];
+  
+  for (let i = 0; i < chunks.length; i++) {
+    onProgress?.(20 + (i / chunks.length) * 60, `ElevenLabs chunk ${i + 1}/${chunks.length}...`);
+    
+    try {
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Accept': 'audio/mpeg',
+            'Content-Type': 'application/json',
+            'xi-api-key': ELEVENLABS_API_KEY
+          },
+          body: JSON.stringify({
+            text: chunks[i],
+            model_id: 'eleven_multilingual_v2',
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+              style: 0.5,
+              use_speaker_boost: true
+            }
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`ElevenLabs API error: ${error}`);
+      }
+
+      audioBlobs.push(await response.blob());
+      
+      // Petit délai entre les requêtes
+      if (i < chunks.length - 1) {
+        await new Promise(r => setTimeout(r, 500));
+      }
+    } catch (error) {
+      console.error(`ElevenLabs chunk ${i} failed:`, error);
+      throw error;
+    }
+  }
+  
+  // Combiner tous les blobs audio
+  return new Blob(audioBlobs, { type: 'audio/mpeg' });
+}
+
+/**
+ * Génère un fichier audio silencieux avec la durée appropriée
+ * Utilisé quand aucun TTS n'est disponible
+ */
+function generateSilentAudio(durationSeconds: number): Blob {
+  // Créer un fichier WAV silencieux
+  const sampleRate = 44100;
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const numSamples = Math.floor(sampleRate * durationSeconds);
+  const dataSize = numSamples * numChannels * (bitsPerSample / 8);
+  const fileSize = 44 + dataSize;
+
+  const buffer = new ArrayBuffer(fileSize);
+  const view = new DataView(buffer);
+
+  // WAV header
+  const writeString = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  };
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, fileSize - 8, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true); // Subchunk1Size
+  view.setUint16(20, 1, true); // AudioFormat (PCM)
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * numChannels * (bitsPerSample / 8), true); // ByteRate
+  view.setUint16(32, numChannels * (bitsPerSample / 8), true); // BlockAlign
+  view.setUint16(34, bitsPerSample, true);
+  writeString(36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  // Audio data (silence = all zeros, already initialized)
+
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
+/**
+ * Génère l'audio via le proxy TTS (Cloudflare Worker / Azure Function)
+ * Utilise Google Cloud TTS ou Azure Speech en backend (GRATUIT)
+ */
+async function generateSpeechProxy(
+  text: string,
+  onProgress?: (progress: number, message: string) => void
+): Promise<Blob> {
+  if (!TTS_API_URL) {
+    throw new Error('TTS API URL not configured');
+  }
+
+  // Nettoyer le texte
+  const cleanText = text
+    .replace(/\*\*PARAGRAPHE \d+ - [^:]+:\*\*/g, '')
+    .replace(/\*\*/g, '')
+    .replace(/PARAGRAPHE \d+ - [^:]+:/g, '')
+    .trim();
+
+  // Découper en chunks de 5000 chars max (limite Google TTS)
+  const MAX_CHUNK = 4500;
+  const chunks: string[] = [];
+  let remaining = cleanText;
+
+  while (remaining.length > 0) {
+    if (remaining.length <= MAX_CHUNK) {
+      chunks.push(remaining);
+      break;
+    }
+    
+    let splitIndex = remaining.lastIndexOf('. ', MAX_CHUNK);
+    if (splitIndex === -1 || splitIndex < MAX_CHUNK * 0.5) {
+      splitIndex = remaining.lastIndexOf(' ', MAX_CHUNK);
+    }
+    if (splitIndex === -1) splitIndex = MAX_CHUNK;
+    
+    chunks.push(remaining.substring(0, splitIndex + 1).trim());
+    remaining = remaining.substring(splitIndex + 1).trim();
+  }
+
+  console.log(`🎵 Proxy TTS: ${chunks.length} chunks à générer`);
+  
+  const audioBlobs: Blob[] = [];
+
+  for (let i = 0; i < chunks.length; i++) {
+    onProgress?.(30 + (i / chunks.length) * 50, `TTS Proxy chunk ${i + 1}/${chunks.length}...`);
+    
+    try {
+      const response = await fetch(TTS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          text: chunks[i],
+          voice: 'fr-FR-Wavenet-B' // Voix Google masculine française
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Proxy TTS error: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      if (blob.size > 0) {
+        audioBlobs.push(blob);
+      }
+
+      // Délai entre les requêtes
+      if (i < chunks.length - 1) {
+        await new Promise(r => setTimeout(r, 300));
+      }
+    } catch (error) {
+      console.error(`Proxy TTS chunk ${i} failed:`, error);
+      throw error;
+    }
+  }
+
+  if (audioBlobs.length === 0) {
+    throw new Error('Proxy TTS: no audio generated');
+  }
+
+  console.log(`✅ Proxy TTS: ${audioBlobs.length}/${chunks.length} chunks générés`);
+  return new Blob(audioBlobs, { type: 'audio/mpeg' });
 }
 
 /**
  * Génère la voix off complète pour un script
+ * Priorité: ElevenLabs > Proxy TTS (Google/Azure gratuit) > Audio silencieux
  */
 export async function generateVoiceover(
   script: string,
@@ -112,54 +283,61 @@ export async function generateVoiceover(
 ): Promise<Blob> {
   onProgress?.(10, 'Préparation de la synthèse vocale...');
 
-  // Diviser le script en segments plus petits si nécessaire
-  const segments = script.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
-  const audioBlobs: Blob[] = [];
-
-  // Si ElevenLabs est configuré, l'utiliser
+  // Méthode 1: ElevenLabs (haute qualité)
   if (ELEVENLABS_API_KEY) {
-    onProgress?.(20, 'Génération avec ElevenLabs...');
+    onProgress?.(20, 'Génération avec ElevenLabs (haute qualité)...');
     
-    // ElevenLabs peut gérer des textes longs, on envoie tout
     try {
-      const blob = await generateSpeechElevenLabs(script);
-      onProgress?.(100, 'Audio généré avec succès');
+      const blob = await generateSpeechElevenLabs(script, 'pNInz6obpgDQGcFmaJgB', onProgress);
+      const size = blob.size;
+      console.log(`✅ ElevenLabs audio généré: ${(size / 1024 / 1024).toFixed(2)} MB`);
+      onProgress?.(100, 'Audio ElevenLabs généré avec succès');
       return blob;
     } catch (error) {
-      console.error('ElevenLabs error, falling back to Web Speech:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.warn('⚠️ ElevenLabs failed:', errorMsg);
+      
+      if (errorMsg.includes('quota_exceeded')) {
+        console.error('❌ ElevenLabs: Crédits insuffisants');
+        onProgress?.(25, '❌ Crédits ElevenLabs épuisés, essai TTS gratuit...');
+      } else {
+        onProgress?.(25, '⚠️ ElevenLabs indisponible, essai TTS gratuit...');
+      }
     }
   }
 
-  // Fallback: Web Speech API
-  onProgress?.(20, 'Génération avec synthèse navigateur...');
-  
-  // Attendre que les voix soient chargées
-  await new Promise<void>(resolve => {
-    if (speechSynthesis.getVoices().length > 0) {
-      resolve();
-    } else {
-      speechSynthesis.onvoiceschanged = () => resolve();
-    }
-  });
-
-  for (let i = 0; i < segments.length; i++) {
-    const progress = 20 + (i / segments.length) * 70;
-    onProgress?.(progress, `Synthèse segment ${i + 1}/${segments.length}...`);
+  // Méthode 2: Proxy TTS (Google Cloud / Azure - GRATUIT)
+  if (TTS_API_URL) {
+    onProgress?.(30, 'Génération avec TTS gratuit (Google Cloud)...');
     
     try {
-      const blob = await generateSpeechWebAPI(segments[i]);
-      audioBlobs.push(blob);
+      const blob = await generateSpeechProxy(script, onProgress);
+      const size = blob.size;
+      console.log(`✅ Proxy TTS audio généré: ${(size / 1024 / 1024).toFixed(2)} MB`);
+      onProgress?.(100, 'Audio généré avec succès (TTS gratuit)');
+      return blob;
     } catch (error) {
-      console.error(`Error generating segment ${i}:`, error);
+      console.error('❌ Proxy TTS failed:', error);
+      onProgress?.(50, '❌ TTS gratuit échoué');
     }
+  } else {
+    console.warn('⚠️ VITE_TTS_API_URL non configurée - TTS gratuit désactivé');
   }
 
-  // Combiner tous les segments audio
-  onProgress?.(95, 'Assemblage audio...');
-  const combinedBlob = new Blob(audioBlobs, { type: 'audio/webm' });
-  onProgress?.(100, 'Audio terminé');
+  // Fallback: Générer un audio silencieux
+  const wordCount = script.split(/\s+/).length;
+  const estimatedDuration = (wordCount / 150) * 60;
   
-  return combinedBlob;
+  console.log(`⚠️ Génération audio silencieux (${Math.round(estimatedDuration)}s)`);
+  console.log('💡 Configurez VITE_TTS_API_URL pour le TTS gratuit');
+  
+  onProgress?.(50, '⚠️ Création audio silencieux...');
+  
+  const silentBlob = generateSilentAudio(estimatedDuration);
+  
+  onProgress?.(100, '⚠️ Vidéo sans voix off');
+  
+  return silentBlob;
 }
 
 /**

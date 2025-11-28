@@ -64,6 +64,7 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
   const [selectedChannel, setSelectedChannel] = useState<string>('all');
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [previewVideo, setPreviewVideo] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return { month: now.getMonth() + 2, year: now.getFullYear() + (now.getMonth() === 11 ? 1 : 0) };
@@ -476,6 +477,19 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
                                     <CheckIcon className="w-4 h-4" />
                                     Prêt
                                   </span>
+                                  
+                                  {/* Bouton Prévisualiser */}
+                                  {item.generatedAsset?.videoUrl && (
+                                    <button
+                                      onClick={() => setPreviewVideo(item.generatedAsset!.videoUrl)}
+                                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+                                      aria-label="Prévisualiser la vidéo"
+                                    >
+                                      <PlayIcon className="w-4 h-4" />
+                                      Prévisualiser
+                                    </button>
+                                  )}
+                                  
                                   {isChannelConnected(item.channelId) && onUploadVideo ? (
                                     <button
                                       onClick={() => onUploadVideo(item)}
@@ -536,6 +550,61 @@ const ContentCalendarView: React.FC<ContentCalendarProps> = ({
           </div>
         )}
       </div>
+
+      {/* Modal de prévisualisation vidéo */}
+      {previewVideo && (
+        <div 
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setPreviewVideo(null)}
+        >
+          <div 
+            className="bg-gray-900 rounded-2xl overflow-hidden max-w-5xl w-full max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <h3 className="text-lg font-semibold text-white">📺 Prévisualisation de la vidéo</h3>
+              <button
+                onClick={() => setPreviewVideo(null)}
+                className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                title="Fermer la prévisualisation"
+                aria-label="Fermer la prévisualisation"
+              >
+                <XIcon className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="flex-1 p-4 flex items-center justify-center bg-black">
+              <video
+                src={previewVideo}
+                controls
+                autoPlay
+                className="max-w-full max-h-[70vh] rounded-lg aspect-video"
+              >
+                Votre navigateur ne supporte pas la lecture vidéo.
+              </video>
+            </div>
+            <div className="p-4 border-t border-gray-800 flex justify-between items-center">
+              <span className="text-sm text-gray-400">
+                Vérifiez la qualité avant de publier sur YouTube
+              </span>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setPreviewVideo(null)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Fermer
+                </button>
+                <a
+                  href={previewVideo}
+                  download="video-preview.webm"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  📥 Télécharger
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
