@@ -89,29 +89,36 @@ export function isShotstackAvailable(): boolean {
 
 /**
  * Crée une timeline Shotstack à partir des scènes
+ * PRIORITÉ: Vidéos Pexels > Images statiques
  */
 export function createTimeline(
-  scenes: Array<{ imageUrl: string; text: string; duration: number }>,
+  scenes: Array<{ imageUrl: string; videoUrl?: string; text: string; duration: number }>,
   audioUrl?: string
 ): ShotstackEdit {
   let currentTime = 0;
   
-  // Track pour les images (avec effet Ken Burns)
-  const imageClips: ShotstackClip[] = scenes.map((scene, index) => {
+  // Track pour les médias (vidéos préférées, images en fallback)
+  const mediaClips: ShotstackClip[] = scenes.map((scene, index) => {
+    // Préférer les vidéos si disponibles
+    const hasVideo = scene.videoUrl && scene.videoUrl.length > 0;
+    
     const clip: ShotstackClip = {
       asset: {
-        type: 'image',
-        src: scene.imageUrl,
+        type: hasVideo ? 'video' : 'image',
+        src: hasVideo ? scene.videoUrl : scene.imageUrl,
       },
       start: currentTime,
       length: scene.duration,
-      effect: 'zoomIn', // Ken Burns effect
+      effect: hasVideo ? undefined : 'zoomIn', // Ken Burns uniquement pour images
       fit: 'cover',
       transition: {
         in: index === 0 ? 'fade' : 'slideLeft',
         out: 'fade'
       }
     };
+    
+    console.log(`📹 Scène ${index + 1}: ${hasVideo ? 'VIDÉO' : 'IMAGE'} (${scene.duration}s)`);
+    
     currentTime += scene.duration;
     return clip;
   });
@@ -169,7 +176,7 @@ export function createTimeline(
     background: '#000000',
     tracks: [
       { clips: titleClips },  // Track 0: sous-titres (au-dessus)
-      { clips: imageClips },  // Track 1: images (en-dessous)
+      { clips: mediaClips },  // Track 1: vidéos/images (en-dessous)
     ]
   };
 
@@ -285,13 +292,18 @@ export async function waitForRender(
 
 /**
  * Génère une vidéo complète via Shotstack
+ * PRIORITÉ: Vidéos Pexels > Images statiques
  */
 export async function generateVideoWithShotstack(
-  scenes: Array<{ imageUrl: string; text: string; duration: number }>,
+  scenes: Array<{ imageUrl: string; videoUrl?: string; text: string; duration: number }>,
   audioUrl?: string,
   onProgress?: (progress: number, message: string) => void
 ): Promise<{ videoUrl: string } | { error: string }> {
   console.log('🎬 generateVideoWithShotstack appelé avec', scenes.length, 'scènes');
+  
+  // Log combien de scènes ont des vidéos vs images
+  const videoCount = scenes.filter(s => s.videoUrl && s.videoUrl.length > 0).length;
+  console.log(`   📹 ${videoCount}/${scenes.length} scènes ont des clips vidéo`);
   
   if (!isShotstackAvailable()) {
     return { error: 'Shotstack non configuré. Ajoutez VITE_SHOTSTACK_API_KEY dans .env.local' };

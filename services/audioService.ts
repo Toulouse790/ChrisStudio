@@ -28,12 +28,16 @@ export async function generateSpeechElevenLabs(
   // ElevenLabs limite à 10000 caractères par requête
   const MAX_CHARS = 9500; // Marge de sécurité
   
-  // Nettoyer le texte
+  // Nettoyer le texte (enlever les marqueurs de paragraphe mais garder le contenu)
   const cleanText = text
     .replace(/\*\*PARAGRAPHE \d+ - [^:]+:\*\*/g, '')
     .replace(/\*\*/g, '')
     .replace(/PARAGRAPHE \d+ - [^:]+:/g, '')
     .trim();
+  
+  const wordCount = cleanText.split(/\s+/).length;
+  console.log(`🎙️ ElevenLabs: ${wordCount} mots à lire, ${cleanText.length} caractères`);
+  console.log(`📝 Texte complet pour ElevenLabs:\n---\n${cleanText}\n---`);
   
   // Si le texte est court, une seule requête
   if (cleanText.length <= MAX_CHARS) {
@@ -282,6 +286,10 @@ export async function generateVoiceover(
   onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
   onProgress?.(10, 'Préparation de la synthèse vocale...');
+  
+  // Log du texte reçu pour debug
+  const wordCount = script.split(/\s+/).length;
+  console.log(`🎤 generateVoiceover reçu: ${wordCount} mots, ${script.length} caractères`);
 
   // Méthode 1: ElevenLabs (haute qualité)
   if (ELEVENLABS_API_KEY) {
@@ -325,8 +333,8 @@ export async function generateVoiceover(
   }
 
   // Fallback: Générer un audio silencieux
-  const wordCount = script.split(/\s+/).length;
-  const estimatedDuration = (wordCount / 150) * 60;
+  const fallbackWordCount = script.split(/\s+/).length;
+  const estimatedDuration = (fallbackWordCount / 150) * 60;
   
   console.log(`⚠️ Génération audio silencieux (${Math.round(estimatedDuration)}s)`);
   console.log('💡 Configurez VITE_TTS_API_URL pour le TTS gratuit');

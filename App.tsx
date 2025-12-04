@@ -332,13 +332,11 @@ const App: React.FC = () => {
   }) => (
     <button
       onClick={() => handleNavClick(view)}
-      className={`flex items-center gap-3 px-4 py-3 w-full rounded-lg transition-all duration-200 ${
-        currentView === view
-          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50'
-          : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+      className={`sidebar-nav-item w-full ${
+        currentView === view ? 'active' : ''
       }`}>
       <Icon className="w-5 h-5 shrink-0" />
-      <span className="font-medium">{label}</span>
+      <span>{label}</span>
     </button>
   );
 
@@ -353,20 +351,25 @@ const App: React.FC = () => {
       )}
       
       {!isOAuthCallback && (
-    <div className="h-screen bg-black text-gray-200 flex font-sans overflow-hidden">
+    <div className="h-screen bg-primary text-primary flex font-sans overflow-hidden gradient-mesh">
+      {/* Noise overlay for premium feel */}
+      <div className="noise-overlay"></div>
+      
       {showApiKeyDialog && (
         <ApiKeyDialog onContinue={handleApiKeyDialogContinue} />
       )}
 
       {/* Mobile Header with Safe Area for PWA */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0f0f0f] border-b border-gray-800 z-40 flex items-center px-4 justify-between pt-[env(safe-area-inset-top)]">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-linear-to-tr from-indigo-500 to-purple-500 rounded-lg shadow-indigo-500/20 shadow-lg"></div>
-          <h1 className="text-lg font-bold bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-secondary/90 backdrop-blur-xl border-b border-default z-40 flex items-center px-4 justify-between pt-[env(safe-area-inset-top)]">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-linear-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 animate-pulse-glow">
+            <span className="text-white font-bold text-sm">CS</span>
+          </div>
+          <h1 className="text-lg font-bold gradient-text">
             ChrisStudio
           </h1>
         </div>
-        <button onClick={toggleSidebar} className="p-2 text-gray-400 hover:text-white">
+        <button onClick={toggleSidebar} className="p-2 rounded-lg hover:bg-surface-hover text-secondary hover:text-white transition-colors">
           {isSidebarOpen ? <XMarkIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
         </button>
       </div>
@@ -374,27 +377,32 @@ const App: React.FC = () => {
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/80 z-30 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-30 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         ></div>
       )}
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-[#0f0f0f] border-r border-gray-800 flex flex-col p-4 transition-transform duration-300 ease-in-out
+        sidebar fixed inset-y-0 left-0 z-40 w-72 flex flex-col p-5 transition-transform duration-300 ease-out
         md:relative md:translate-x-0
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        mt-16 md:mt-0 pt-[env(safe-area-inset-top)] md:pt-4
+        mt-16 md:mt-0 pt-[env(safe-area-inset-top)] md:pt-5
       `}>
-        {/* Desktop Logo (Hidden on mobile) */}
-        <div className="hidden md:flex mb-8 px-2 items-center gap-2">
-          <div className="w-8 h-8 bg-linear-to-tr from-indigo-500 to-purple-500 rounded-lg shadow-indigo-500/20 shadow-lg"></div>
-          <h1 className="text-xl font-bold bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            ChrisStudio
-          </h1>
+        {/* Desktop Logo */}
+        <div className="hidden md:flex mb-8 px-1 items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 animate-pulse-glow">
+            <span className="text-white font-bold">CS</span>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold gradient-text">
+              ChrisStudio
+            </h1>
+            <p className="text-xs text-muted">Création vidéo IA</p>
+          </div>
         </div>
 
-        <nav className="grow space-y-2">
+        <nav className="grow space-y-1.5">
           <NavItem
             view={View.DASHBOARD}
             icon={LayoutDashboardIcon}
@@ -412,26 +420,32 @@ const App: React.FC = () => {
           />
         </nav>
 
-        <div className="pt-4 border-t border-gray-800 mt-auto mb-20 md:mb-0">
-          <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
-            <p className="text-xs text-gray-500">Forfait Actuel</p>
-            <p className="text-sm font-semibold text-indigo-400 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                Créateur Pro
-            </p>
-            <div className="w-full bg-gray-800 h-1.5 rounded-full mt-2 overflow-hidden">
-              <div className="bg-indigo-500 h-full w-3/4"></div>
+        {/* Subscription Card */}
+        <div className="pt-4 border-t border-default mt-auto mb-20 md:mb-0">
+          <div className="glass-card p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-muted uppercase tracking-wider">Forfait</p>
+              <span className="badge badge-primary">Pro</span>
             </div>
-            <p className="text-[10px] text-gray-500 mt-1 text-right">
-              Session en cours
+            <p className="text-sm font-semibold text-primary flex items-center gap-2 mb-3">
+              <span className="status-dot status-online"></span>
+              Session Active
+            </p>
+            <div className="progress-bar">
+              <div className="progress-bar-fill" style={{ width: '75%' }}></div>
+            </div>
+            <p className="text-xs text-muted mt-2 text-right">
+              75% utilisé ce mois
             </p>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="grow flex flex-col bg-[#050505] overflow-hidden relative pt-16 md:pt-0 h-dvh">
-        <div className="absolute top-0 left-0 w-full h-64 bg-indigo-900/10 blur-3xl pointer-events-none"></div>
+      <main className="grow flex flex-col overflow-hidden relative pt-16 md:pt-0 h-dvh">
+        {/* Gradient background effects */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none"></div>
 
         {currentView === View.DASHBOARD && (
             <Dashboard 

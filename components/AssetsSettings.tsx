@@ -164,7 +164,7 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
              <div className="space-y-4">
                  {channels.map(channel => (
                      <div key={channel.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-black/30 rounded-lg border border-gray-800 gap-3">
-                         <div className="flex-grow">
+                         <div className="grow">
                              <div className="text-sm font-bold text-gray-200">{channel.name}</div>
                              
                              {editingChannelId === channel.id ? (
@@ -174,10 +174,11 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                                         value={tempHandle}
                                         onChange={(e) => setTempHandle(e.target.value)}
                                         placeholder="@MonHandle"
+                                        aria-label="Identifiant YouTube"
                                         className="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-xs text-white w-32"
                                         autoFocus
                                      />
-                                     <button onClick={() => handleSaveHandle(channel.id)} className="text-xs text-indigo-400 hover:underline">OK</button>
+                                     <button type="button" onClick={() => handleSaveHandle(channel.id)} className="text-xs text-indigo-400 hover:underline">OK</button>
                                  </div>
                              ) : (
                                  <div className="flex items-center gap-2 mt-1">
@@ -215,9 +216,10 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                   type="checkbox" 
                   checked={watermarkSettings.enabled} 
                   onChange={(e) => onUpdateSettings({...watermarkSettings, enabled: e.target.checked})}
-                  className="sr-only peer" 
+                  className="sr-only peer"
+                  aria-label="Activer le filigrane"
                 />
-                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
               </label>
             </h3>
 
@@ -232,6 +234,9 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                    <div className="relative">
                        <img src={watermarkSettings.dataUrl} alt="Uploaded Logo" className="h-16 object-contain" />
                        <button 
+                         type="button"
+                         title="Supprimer le logo"
+                         aria-label="Supprimer le logo"
                          onClick={(e) => {
                              e.stopPropagation();
                              onUpdateSettings({...watermarkSettings, dataUrl: null, enabled: false});
@@ -253,6 +258,7 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                     className="hidden" 
                     accept="image/png, image/jpeg" 
                     onChange={handleWatermarkUpload}
+                    aria-label="Télécharger un logo"
                 />
               </div>
             </div>
@@ -263,7 +269,10 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
               <div className="grid grid-cols-2 gap-3 max-w-[200px]">
                  {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map((pos) => (
                      <button
+                        type="button"
                         key={pos}
+                        title={`Position ${pos}`}
+                        aria-label={`Position ${pos}`}
                         onClick={() => handlePositionChange(pos as WatermarkPosition)}
                         className={`h-16 rounded-lg border-2 flex items-center justify-center ${watermarkSettings.position === pos ? 'border-indigo-500 bg-indigo-900/20' : 'border-gray-700 bg-gray-800 hover:bg-gray-700'}`}
                      >
@@ -280,11 +289,12 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
             {/* Sliders */}
             <div className="space-y-6">
                 <div>
-                    <div className="flex justify-between text-sm mb-2">
+                    <label htmlFor="opacity-slider" className="flex justify-between text-sm mb-2">
                         <span className="text-gray-300">Opacité</span>
                         <span className="text-gray-500">{Math.round(watermarkSettings.opacity * 100)}%</span>
-                    </div>
+                    </label>
                     <input 
+                        id="opacity-slider"
                         type="range" 
                         min="0.1" 
                         max="1" 
@@ -295,11 +305,12 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                     />
                 </div>
                 <div>
-                    <div className="flex justify-between text-sm mb-2">
+                    <label htmlFor="scale-slider" className="flex justify-between text-sm mb-2">
                         <span className="text-gray-300">Échelle de taille</span>
                         <span className="text-gray-500">{Math.round(watermarkSettings.scale * 100)}%</span>
-                    </div>
+                    </label>
                     <input 
+                        id="scale-slider"
                         type="range" 
                         min="0.1" 
                         max="0.5" 
@@ -333,8 +344,8 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                    )}
                    {musicLibrary.map(track => (
                        <div key={track.id} className="flex items-center justify-between bg-black/30 p-2 rounded border border-gray-800">
-                           <span className="text-sm text-gray-300 truncate flex-grow">{track.name}</span>
-                           <button onClick={() => removeMusicTrack(track.id)} className="text-gray-500 hover:text-red-400 p-1">
+                           <span className="text-sm text-gray-300 truncate grow">{track.name}</span>
+                           <button type="button" title="Supprimer la piste" aria-label="Supprimer la piste" onClick={() => removeMusicTrack(track.id)} className="text-gray-500 hover:text-red-400 p-1">
                                <TrashIcon className="w-4 h-4" />
                            </button>
                        </div>
@@ -348,7 +359,7 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                    <UploadCloudIcon className="w-4 h-4" />
                    Ajouter des musiques (MP3/WAV)
                </button>
-               <input type="file" ref={musicInputRef} className="hidden" accept="audio/*" multiple onChange={handleMusicUpload} />
+               <input type="file" ref={musicInputRef} className="hidden" accept="audio/*" multiple onChange={handleMusicUpload} aria-label="Ajouter des musiques" />
            </div>
 
           {/* INTRO / OUTRO SECTION */}
@@ -367,9 +378,10 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                         type="checkbox" 
                         checked={introOutroSettings.intro.enabled} 
                         onChange={(e) => toggleVideoEnabled('intro', e.target.checked)}
-                        className="sr-only peer" 
+                        className="sr-only peer"
+                        aria-label="Activer la vidéo d'intro"
                         />
-                        <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
                     </label>
                  </div>
                  
@@ -377,6 +389,9 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                      <div className="relative aspect-video bg-black rounded-lg overflow-hidden group">
                          <video src={introOutroSettings.intro.previewUrl} className="w-full h-full object-contain" controls />
                          <button 
+                            type="button"
+                            title="Supprimer la vidéo d'intro"
+                            aria-label="Supprimer la vidéo d'intro"
                             onClick={() => removeVideo('intro')}
                             className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
                          >
@@ -392,7 +407,7 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                          <span className="text-xs text-center">Uploader Intro (MP4)</span>
                      </button>
                  )}
-                 <input type="file" ref={introInputRef} className="hidden" accept="video/mp4" onChange={(e) => handleVideoUpload(e, 'intro')} />
+                 <input type="file" ref={introInputRef} className="hidden" accept="video/mp4" onChange={(e) => handleVideoUpload(e, 'intro')} aria-label="Télécharger une vidéo d'intro" />
             </div>
 
             {/* Outro */}
@@ -407,9 +422,10 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                         type="checkbox" 
                         checked={introOutroSettings.outro.enabled} 
                         onChange={(e) => toggleVideoEnabled('outro', e.target.checked)}
-                        className="sr-only peer" 
+                        className="sr-only peer"
+                        aria-label="Activer la vidéo de fin"
                         />
-                        <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
                     </label>
                  </div>
                  
@@ -417,6 +433,9 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                      <div className="relative aspect-video bg-black rounded-lg overflow-hidden group">
                          <video src={introOutroSettings.outro.previewUrl} className="w-full h-full object-contain" controls />
                          <button 
+                            type="button"
+                            title="Supprimer la vidéo de fin"
+                            aria-label="Supprimer la vidéo de fin"
                             onClick={() => removeVideo('outro')}
                             className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
                          >
@@ -432,28 +451,27 @@ const AssetsSettings: React.FC<AssetsSettingsProps> = ({
                          <span className="text-xs text-center">Uploader Outro (MP4)</span>
                      </button>
                  )}
-                 <input type="file" ref={outroInputRef} className="hidden" accept="video/mp4" onChange={(e) => handleVideoUpload(e, 'outro')} />
+                 <input type="file" ref={outroInputRef} className="hidden" accept="video/mp4" onChange={(e) => handleVideoUpload(e, 'outro')} aria-label="Télécharger une vidéo de fin" />
             </div>
           </div>
 
            {/* Branding Preview */}
            <div className="space-y-4">
-                <label className="block text-sm font-medium text-gray-300">Aperçu de la marque</label>
+                <span className="block text-sm font-medium text-gray-300">Aperçu de la marque</span>
                 <div className="relative w-full aspect-video bg-black rounded-xl border border-gray-700 overflow-hidden shadow-2xl flex items-center justify-center group">
                     {/* Mock Video Background */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-50"></div>
+                    <div className="absolute inset-0 bg-linear-to-br from-gray-800 to-gray-900 opacity-50"></div>
                     <div className="z-0 text-gray-600 font-bold text-lg md:text-xl">APERÇU VIDÉO</div>
                     
-                    {/* Watermark Overlay */}
+                    {/* Watermark Overlay - style inline nécessaire pour valeurs dynamiques */}
                     {watermarkSettings.enabled && watermarkSettings.dataUrl && (
                         <img 
                             src={watermarkSettings.dataUrl}
-                            alt="Watermark"
-                            className={`absolute transition-all duration-300 ease-out object-contain z-10 ${getPositionClasses(watermarkSettings.position)}`}
+                            alt="Aperçu du filigrane"
+                            className={`absolute transition-all duration-300 ease-out object-contain z-10 max-w-[50%] ${getPositionClasses(watermarkSettings.position)}`}
                             style={{
                                 opacity: watermarkSettings.opacity,
-                                width: `${watermarkSettings.scale * 100}%`,
-                                maxWidth: '50%'
+                                width: `${watermarkSettings.scale * 100}%`
                             }}
                         />
                     )}
