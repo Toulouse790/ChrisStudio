@@ -1,15 +1,18 @@
 import axios from 'axios';
-import { createWriteStream } from 'fs';
+import { createWriteStream, existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { pipeline } from 'stream/promises';
 import { Asset } from '../types/index.js';
 import path from 'path';
+import { AssetLibrary } from './asset-library.js';
 
 export class AssetDownloader {
   private outputDir: string;
+  private library: AssetLibrary;
 
   constructor(outputDir: string = './assets/downloads') {
     this.outputDir = outputDir;
+    this.library = new AssetLibrary();
   }
 
   async downloadAssets(assets: Asset[]): Promise<Asset[]> {
@@ -18,28 +21,58 @@ export class AssetDownloader {
     console.log(`\n📥 Downloading ${assets.length} assets...\n`);
     
     const downloadedAssets: Asset[] = [];
+
+    let reusedCount = 0;
+    let downloadedCount = 0;
+    let indexedCount = 0;
+    let failedCount = 0;
     
     for (let i = 0; i < assets.length; i++) {
       const asset = assets[i];
+
+      // If the asset already has a valid localPath, reuse it (no network).
+      if (asset.localPath && existsSync(asset.localPath)) {
+        reusedCount++;
+        downloadedAssets.push(asset);
+        // Update lastUsedAt/timesUsed in library if possible.
+        await this.library.markUsedByPath(asset.localPath).catch(() => undefined);
+        console.log(`[${i + 1}/${assets.length}] Reusing local ${asset.type}: ${asset.localPath}`);
+        continue;
+      }
+
       console.log(`[${i + 1}/${assets.length}] Downloading ${asset.type}...`);
       
       try {
         const localPath = await this.downloadFile(asset.url, asset.type, i);
-        
-        downloadedAssets.push({
+
+        downloadedCount++;
+
+        const enriched: Asset = {
           ...asset,
-          localPath
-        });
+          localPath,
+          source: asset.source || 'pexels'
+        };
+
+        // Index into local library for future reuse
+        const entry = await this.library.upsertFromDownload(enriched, localPath).catch(() => null);
+        if (entry) indexedCount++;
+        
+        downloadedAssets.push(enriched);
         
         console.log(`✅ Saved: ${localPath}`);
       } catch (error) {
         console.error(`❌ Failed to download ${asset.url}:`, error);
         // Keep the asset without localPath (will be skipped in video composition)
         downloadedAssets.push(asset);
+        failedCount++;
       }
     }
     
-    console.log(`\n✅ Downloaded ${downloadedAssets.filter(a => a.localPath).length}/${assets.length} assets\n`);
+    console.log(`\n📚 Library reuse: ${reusedCount}`);
+    console.log(`⬇️  Downloaded: ${downloadedCount}`);
+    console.log(`🧾 Indexed: ${indexedCount}`);
+    console.log(`⚠️  Failed: ${failedCount}`);
+    console.log(`\n✅ Usable assets: ${downloadedAssets.filter(a => a.localPath && existsSync(a.localPath)).length}/${assets.length}\n`);
     return downloadedAssets;
   }
 

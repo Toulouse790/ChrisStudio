@@ -58,6 +58,12 @@ export class FullVideoPipeline {
       const assets = await this.assetCollector.collectAssetsForTimeline(requests);
       console.log(`   Images: ${assets.filter(a => a.type === 'image').length}`);
       console.log(`   Videos: ${assets.filter(a => a.type === 'video').length}\n`);
+      const fromLibrary = assets.filter(a => a.source === 'library' && a.localPath).length;
+      const fromPexels = assets.filter(a => a.source === 'pexels').length;
+      if (fromLibrary > 0) {
+        console.log(`   ♻️  Assets from library: ${fromLibrary}`);
+      }
+      console.log(`   🌐 Assets from Pexels: ${fromPexels}\n`);
 
       // Step 4: Download Assets
       console.log('📥 STEP 4/5: Downloading assets...\n');
@@ -223,7 +229,8 @@ export class FullVideoPipeline {
       label: 'hook',
       preferredType: rng() < visualMix.video ? 'video' : 'image',
       durationSeconds: hookSeconds,
-      searchQuery: script.sections[0]?.searchQuery || topic
+      searchQuery: script.sections[0]?.searchQuery || topic,
+      channelId: channel.id
     });
 
     // Sting beat (branding overlay handled in composer)
@@ -236,7 +243,8 @@ export class FullVideoPipeline {
       label: 'sting',
       preferredType: 'image',
       durationSeconds: stingSeconds,
-      searchQuery: stingQuery
+      searchQuery: stingQuery,
+      channelId: channel.id
     });
 
     // Sections: split into multiple beats
@@ -262,7 +270,8 @@ export class FullVideoPipeline {
           preferredType,
           durationSeconds: dur,
           transition: section.transition,
-          searchQuery: section.searchQuery
+          searchQuery: section.searchQuery,
+          channelId: channel.id
         });
       }
     });
@@ -277,7 +286,8 @@ export class FullVideoPipeline {
       label: 'outro',
       preferredType: 'image',
       durationSeconds: outroSeconds,
-      searchQuery: outroQuery
+      searchQuery: outroQuery,
+      channelId: channel.id
     });
 
     // Convert to Asset durations later; ensure total isn't shorter than audio (composer still enforces)

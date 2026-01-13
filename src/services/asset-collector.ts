@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Asset, ScriptSection, VisualRequest } from '../types/index.js';
+import { AssetLibrary } from './asset-library.js';
 
 interface PexelsPhoto {
   id: number;
@@ -29,12 +30,15 @@ export class AssetCollector {
   private apiKey: string;
   private baseUrl = 'https://api.pexels.com/v1';
   private videoUrl = 'https://api.pexels.com/videos';
+  private library: AssetLibrary;
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || process.env.PEXELS_API_KEY || '';
     if (!this.apiKey) {
       console.warn('⚠️  No Pexels API key found. Asset collection will be limited.');
     }
+
+    this.library = new AssetLibrary();
   }
 
   /**
@@ -57,14 +61,82 @@ export class AssetCollector {
 
     // Cache Pexels results to avoid 1 API call per beat.
     const cache = new Map<string, { items: Array<Omit<Asset, 'duration'>>; cursor: number }>();
+
+    const usedLocalPaths = new Set<string>();
+    const usedLibraryIds = new Set<string>();
+    const usedUrls = new Set<string>();
+
+    const preferLocal = this.library.isPreferLocalEnabled();
+    if (preferLocal) {
+      await this.library.ensureLoaded();
+      const stats = this.library.getStats();
+      console.log(`📚 Local library enabled: ${stats.total} assets (${stats.images} images, ${stats.videos} videos)`);
+    }
+
+    let fromLibrary = 0;
+    let fromPexels = 0;
     
     console.log(`\n🎨 Collecting assets for ${requests.length} timeline beats...\n`);
     
     for (let i = 0; i < requests.length; i++) {
       const req = requests[i];
       console.log(`[${i + 1}/${requests.length}] Searching (${req.preferredType}): "${req.searchQuery}"`);
+
+      const channelId = req.channelId;
+      const tags = this.deriveTags(req.searchQuery);
       
       try {
+        // 1) Reuse-first from local library (never repeat within same video)
+        if (preferLocal) {
+          const local = await this.library.findBestLocalAssets({
+            query: req.searchQuery,
+            preferredType: req.preferredType,
+            count: 1,
+            channelId,
+            excludeIds: usedLibraryIds,
+            excludeLocalPaths: usedLocalPaths
+          });
+
+          let chosenLocal = local[0];
+
+          // If video requested but no local video found, fallback to local image before Pexels.
+          if (!chosenLocal && req.preferredType === 'video') {
+            const localImg = await this.library.findBestLocalAssets({
+              query: req.searchQuery,
+              preferredType: 'image',
+              count: 1,
+              channelId,
+              excludeIds: usedLibraryIds,
+              excludeLocalPaths: usedLocalPaths
+            });
+            chosenLocal = localImg[0];
+          }
+
+          if (chosenLocal?.localPath) {
+            const libId = chosenLocal.libraryId;
+            if (libId) usedLibraryIds.add(libId);
+            usedLocalPaths.add(chosenLocal.localPath);
+
+            assets.push({
+              ...chosenLocal,
+              duration: req.durationSeconds,
+              source: 'library',
+              channelId: channelId || chosenLocal.channelId,
+              searchQuery: req.searchQuery,
+              tags: chosenLocal.tags?.length ? chosenLocal.tags : tags,
+              attribution: chosenLocal.attribution || 'From local library'
+            });
+            fromLibrary++;
+            if (libId) {
+              await this.library.markUsedById(libId).catch(() => undefined);
+            }
+            console.log(`♻️  Reused ${chosenLocal.type} from library: ${chosenLocal.localPath}`);
+            await this.sleep(10);
+            continue;
+          }
+        }
+
+        // 2) Fallback: Pexels (with caching) + strict video→image fallback
         const key = `${req.preferredType}:${req.searchQuery}`;
 
         // Ensure cache is populated
@@ -90,15 +162,32 @@ export class AssetCollector {
         }
 
         const bucket = cache.get(key)!;
-        const item = bucket.items[bucket.cursor % bucket.items.length];
-        bucket.cursor++;
+        // Try to avoid repeating exact same URL within the same generation.
+        let item: Omit<Asset, 'duration'> | undefined;
+        for (let tries = 0; tries < bucket.items.length; tries++) {
+          const candidate = bucket.items[bucket.cursor % bucket.items.length];
+          bucket.cursor++;
+          if (!usedUrls.has(candidate.url)) {
+            item = candidate;
+            break;
+          }
+        }
+        if (!item) {
+          item = bucket.items[(bucket.cursor++) % bucket.items.length];
+        }
 
         const asset: Asset = {
           ...item,
-          duration: req.durationSeconds
+          duration: req.durationSeconds,
+          source: 'pexels',
+          channelId,
+          searchQuery: req.searchQuery,
+          tags
         };
         
         assets.push(asset);
+        usedUrls.add(asset.url);
+        fromPexels++;
         console.log(`✅ Found ${asset.type}: ${asset.url.substring(0, 60)}...`);
         
         // Gentle pacing (still keeps us well under Pexels limits with caching)
@@ -116,8 +205,22 @@ export class AssetCollector {
       }
     }
     
-    console.log(`\n✅ Collected ${assets.length} assets\n`);
+    console.log(`\n✅ Collected ${assets.length} assets (library: ${fromLibrary}, pexels: ${fromPexels})\n`);
     return assets;
+  }
+
+  private deriveTags(searchQuery: string): string[] {
+    return Array.from(
+      new Set(
+        (searchQuery || '')
+          .toLowerCase()
+          .split(/[^a-z0-9]+/g)
+          .map(s => s.trim())
+          .filter(Boolean)
+          .filter(s => s.length > 2)
+          .filter(s => !STOPWORDS.has(s))
+      )
+    );
   }
 
   private estimateNeededForQuery(requests: VisualRequest[], req: VisualRequest): number {
@@ -255,7 +358,6 @@ export class AssetCollector {
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
-
   // Alternative: Unsplash for images (backup)
   async searchUnsplashImage(query: string, duration: number): Promise<Asset> {
     const accessKey = process.env.UNSPLASH_ACCESS_KEY;
@@ -289,3 +391,11 @@ export class AssetCollector {
     };
   }
 }
+
+const STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'this', 'that', 'from', 'into', 'over', 'under',
+  'about', 'your', 'you', 'are', 'was', 'were', 'has', 'have', 'had', 'will',
+  'its', 'our', 'their', 'they', 'them', 'his', 'her', 'she', 'him', 'who',
+  'what', 'when', 'where', 'why', 'how', 'a', 'an', 'to', 'of', 'in', 'on',
+  'at', 'by', 'as', 'or', 'is', 'it', 'be', 'we', 'us', 'not', 'no', 'yes'
+]);

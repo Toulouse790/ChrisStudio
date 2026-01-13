@@ -79,13 +79,25 @@ export interface VisualRequest {
   transition?: 'fade' | 'dissolve' | 'zoom';
   /** Optional label for debugging / analytics (hook, section-2-beat-3, etc.) */
   label?: string;
+  /** Optional channel context for local-library scoring. */
+  channelId?: string;
 }
 
 export interface Asset {
+  /** Optional id (typically from the local library index). */
+  libraryId?: string;
   type: 'image' | 'video';
   url: string;
   localPath?: string;
   /** Target duration for the segment this asset will cover (seconds). */
   duration?: number;
   attribution?: string;
+
+  /** Metadata used for library indexing/matching (optional). */
+  source?: 'pexels' | 'library';
+  channelId?: string;
+  searchQuery?: string;
+  tags?: string[];
+  /** For videos: probed duration of the media file (seconds), if known. */
+  mediaDurationSeconds?: number;
 }

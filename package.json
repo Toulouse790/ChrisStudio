@@ -14,6 +14,7 @@
     "test:tts": "tsx src/tests/test-edge-tts.ts",
     "test:video": "tsx src/tests/test-ffmpeg.ts",
     "test:assets": "tsx src/tests/test-assets.ts",
+    "test:library": "tsx src/tests/test-asset-library.ts",
     "generate": "tsx src/cli.ts",
     "generate:full": "tsx src/cli.ts full",
     "voices": "tsx src/cli.ts voices"

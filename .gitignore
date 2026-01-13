@@ -2,9 +2,15 @@ node_modules/
 dist/
 output/
 assets/downloads/
+assets/test/
+assets/library.json
+assets/library.json.tmp
 .env
 *.log
 *.mp3
 *.mp4
 *.wav
 .DS_Store
+
+# Runtime scheduler data (generated)
+data/
