@@ -44,8 +44,19 @@ cp .env.example .env
 
 ### Usage
 
+#### 🌐 Web Interface (Recommended!)
 ```bash
-# Full pipeline: Generate complete video (recommended!)
+# Start the web server
+npm run server
+
+# Or with auto-reload
+npm run server:dev
+```
+Then open **http://localhost:3000** in your browser for a beautiful UI! ✨
+
+#### 💻 Command Line
+```bash
+# Full pipeline: Generate complete video
 npm run generate:full what-if "What if AI became conscious tomorrow?"
 
 # Or generate script & audio only (no video)

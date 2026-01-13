@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 YouTube Creator Studio</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🎬 YouTube Creator Studio</h1>
+            <p class="subtitle">AI-Powered Video Generation for Your Channels</p>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel: Generation Form -->
+            <div class="left-panel">
+                <div class="card">
+                    <h2>Create New Video</h2>
+                    
+                    <form id="generateForm">
+                        <div class="form-group">
+                            <label for="channel">Select Channel</label>
+                            <select id="channel" name="channel" required>
+                                <option value="">Loading channels...</option>
+                            </select>
+                            <p class="channel-description" id="channelDescription"></p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="topic">Video Topic</label>
+                            <input 
+                                type="text" 
+                                id="topic" 
+                                name="topic" 
+                                placeholder="e.g., What if humans could breathe underwater?"
+                                required
+                            />
+                            <small>Be specific and intriguing!</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="mode">Generation Mode</label>
+                            <select id="mode" name="mode">
+                                <option value="full">Full Video (Script + Audio + Video)</option>
+                                <option value="audio">Script + Audio Only</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="generateBtn">
+                            🚀 Generate Video
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Progress Card -->
+                <div class="card progress-card" id="progressCard" style="display: none;">
+                    <h3>Generation Progress</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-steps" id="progressSteps">
+                        <div class="step" data-step="script">📝 Script</div>
+                        <div class="step" data-step="audio">🎤 Audio</div>
+                        <div class="step" data-step="assets">🎨 Assets</div>
+                        <div class="step" data-step="download">📥 Download</div>
+                        <div class="step" data-step="compose">🎬 Compose</div>
+                    </div>
+                    <div class="progress-log" id="progressLog"></div>
+                </div>
+
+                <!-- Result Card -->
+                <div class="card result-card" id="resultCard" style="display: none;">
+                    <h3>✅ Video Ready!</h3>
+                    <div class="result-info" id="resultInfo"></div>
+                    <div class="result-actions">
+                        <a href="#" class="btn-secondary" id="downloadBtn" target="_blank">
+                            📥 Download Video
+                        </a>
+                        <button class="btn-secondary" id="newVideoBtn">
+                            ➕ Create Another
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: History -->
+            <div class="right-panel">
+                <div class="card">
+                    <h2>Recent Videos</h2>
+                    <div id="historyList" class="history-list">
+                        <p class="loading">Loading history...</p>
+                    </div>
+                </div>
+
+                <!-- Stats Card -->
+                <div class="card stats-card">
+                    <h3>📊 Statistics</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Videos:</span>
+                        <span class="stat-value" id="statTotal">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">This Week:</span>
+                        <span class="stat-value" id="statWeek">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Avg. Duration:</span>
+                        <span class="stat-value">~9 min</span>
+                    </div>
+                </div>
+
+                <!-- Info Card -->
+                <div class="card info-card">
+                    <h3>ℹ️ Quick Info</h3>
+                    <ul>
+                        <li><strong>Cost per video:</strong> ~$0.10-0.20</li>
+                        <li><strong>Generation time:</strong> ~7-10 minutes</li>
+                        <li><strong>Output quality:</strong> 1080p, 30fps</li>
+                        <li><strong>Free assets:</strong> Pexels + Edge TTS</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
