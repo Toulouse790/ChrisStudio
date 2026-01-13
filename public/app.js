@@ -182,7 +182,11 @@ function showResult(data) {
         <p><strong>⏱️ Generation Time:</strong> ~7-10 minutes</p>
         <p><strong>📊 Quality:</strong> 1080p, 30fps</p>
     `;
-    downloadBtn.href = data.videoPath;
+    
+    // Extract filename from path for download API
+    const filename = data.videoPath.split('/').pop();
+    downloadBtn.href = `/api/download/video/${filename}`;
+    downloadBtn.download = filename;
 }
 
 function resetForm() {
@@ -233,9 +237,9 @@ async function loadHistory() {
                         <span>🕐 ${date.toLocaleTimeString()}</span>
                     </div>
                     <div class="history-actions">
-                        ${item.hasVideo ? `<a href="${item.videoPath}" target="_blank">🎬 Video</a>` : ''}
-                        ${item.hasAudio ? `<a href="${item.audioPath}" target="_blank">🎵 Audio</a>` : ''}
-                        <a href="${item.scriptPath}" target="_blank">📄 Script</a>
+                        ${item.hasVideo ? `<a href="/api/download/video/${item.videoPath.split('/').pop()}" download class="action-link">🎬 Video</a>` : ''}
+                        ${item.hasAudio ? `<a href="${item.audioPath}" target="_blank" class="action-link">🎵 Audio</a>` : ''}
+                        <a href="${item.scriptPath}" target="_blank" class="action-link">📄 Script</a>
                     </div>
                 </div>
             `;

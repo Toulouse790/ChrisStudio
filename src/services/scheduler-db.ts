@@ -12,7 +12,11 @@ export class SchedulerDatabase {
   }
 
   private async ensureDatabase() {
-    await mkdir('./data', { recursive: true });
+    try {
+      await mkdir('./data', { recursive: true });
+    } catch (error) {
+      // Directory might already exist
+    }
     
     if (!existsSync(this.dbPath)) {
       await this.saveVideos([]);

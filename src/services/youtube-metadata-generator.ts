@@ -61,7 +61,7 @@ THEME: ${channelTheme}
 VIDEO SCRIPT:
 Title: ${script.title}
 Hook: ${script.hook}
-Sections: ${script.sections.map(s => s.title).join(', ')}
+Sections: ${script.sections.map(s => s.searchQuery).join(', ')}
 Conclusion: ${script.conclusion}
 
 Generate optimized YouTube metadata following these rules:

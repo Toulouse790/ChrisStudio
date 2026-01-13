@@ -3,7 +3,43 @@ export interface Channel {
   name: string;
   description: string;
   style: ChannelStyle;
+  pacing?: ChannelPacing;
+  visualMix?: VisualMix;
+  branding?: ChannelBranding;
   voice: VoiceConfig;
+}
+
+export interface ChannelPacing {
+  /** Typical shot length range in seconds */
+  minShotSeconds: number;
+  maxShotSeconds: number;
+}
+
+export interface VisualMix {
+  image: number; // 0..1
+  video: number; // 0..1
+}
+
+export interface ChannelBranding {
+  stingText: string; // e.g. "{ChannelName} presents"
+  softCtaText: string;
+  finalCtaText: string;
+  outroTeaserText: string;
+  /** Overlay timings in seconds (relative to start) */
+  overlay?: {
+    stingStartSeconds: number;
+    stingDurationSeconds: number;
+    softCtaStartSeconds: number;
+    softCtaDurationSeconds: number;
+  };
+  /** Optional per-channel overlay look (kept minimal to avoid harming retention). */
+  overlayStyle?: {
+    fontSize?: number;
+    fontColor?: string;
+    boxColor?: string;
+    boxOpacity?: number; // 0..1
+    boxBorderW?: number;
+  };
 }
 
 export interface ChannelStyle {
@@ -36,10 +72,20 @@ export interface ScriptSection {
   transition: 'fade' | 'dissolve' | 'zoom';
 }
 
+export interface VisualRequest {
+  searchQuery: string;
+  preferredType: 'image' | 'video';
+  durationSeconds: number;
+  transition?: 'fade' | 'dissolve' | 'zoom';
+  /** Optional label for debugging / analytics (hook, section-2-beat-3, etc.) */
+  label?: string;
+}
+
 export interface Asset {
   type: 'image' | 'video';
   url: string;
   localPath?: string;
+  /** Target duration for the segment this asset will cover (seconds). */
   duration?: number;
   attribution?: string;
 }

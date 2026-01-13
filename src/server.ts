@@ -31,6 +31,21 @@ app.use(express.static('public'));
 // Serve output files
 app.use('/output', express.static('output'));
 
+// Download video endpoint with proper headers
+app.get('/api/download/video/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filepath = path.join(process.cwd(), 'output', 'videos', filename);
+  
+  res.download(filepath, filename, (err) => {
+    if (err) {
+      console.error('Download error:', err);
+      if (!res.headersSent) {
+        res.status(404).json({ error: 'Video not found' });
+      }
+    }
+  });
+});
+
 // Get available channels
 app.get('/api/channels', (req, res) => {
   const channelsList = Object.values(channels).map(c => ({
@@ -57,19 +72,20 @@ app.get('/api/history', async (req, res) => {
       scripts.map(async (filename) => {
         const content = await readFile(path.join(scriptsDir, filename), 'utf-8');
         const script = JSON.parse(content);
-        const timestamp = filename.match(/\d+/)?.[0] || Date.now();
+        const timestampStr = filename.match(/\d+/)?.[0] || String(Date.now());
+        const timestamp = parseInt(timestampStr, 10);
         const channelId = filename.split('-')[0];
         
         return {
           id: timestamp,
           channel: channelId,
           title: script.title,
-          timestamp: parseInt(timestamp),
-          hasVideo: videos.some(v => v.includes(timestamp)),
-          hasAudio: audios.some(a => a.includes(timestamp)),
+          timestamp,
+          hasVideo: videos.some(v => v.includes(timestampStr)),
+          hasAudio: audios.some(a => a.includes(timestampStr)),
           scriptPath: `/output/scripts/${filename}`,
-          videoPath: videos.find(v => v.includes(timestamp)) ? `/output/videos/${videos.find(v => v.includes(timestamp))}` : null,
-          audioPath: audios.find(a => a.includes(timestamp)) ? `/output/audio/${audios.find(a => a.includes(timestamp))}` : null
+          videoPath: videos.find(v => v.includes(timestampStr)) ? `/output/videos/${videos.find(v => v.includes(timestampStr))}` : null,
+          audioPath: audios.find(a => a.includes(timestampStr)) ? `/output/audio/${audios.find(a => a.includes(timestampStr))}` : null
         };
       })
     );
