@@ -1,4 +1,4 @@
-# 🎬 YouTube Creator Studio - Architecture Complete
+# 🎬 ChrisStudio - Architecture Complete
 
 ## 📊 Vue d'ensemble
 
@@ -25,7 +25,7 @@ Pipeline Complet de Génération Vidéo
 ## 📁 Structure Finale
 
 ```
-youtube-creator-studio/
+chrisstudio/
 │
 ├── 📄 Configuration
 │   ├── package.json             # Dépendances et scripts

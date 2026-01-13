@@ -87,7 +87,7 @@ export class AssetDownloader {
       responseType: 'stream',
       timeout: 60000, // 60 seconds timeout
       headers: {
-        'User-Agent': 'YouTube-Creator-Studio/1.0'
+        'User-Agent': 'ChrisStudio/1.0'
       }
     });
 

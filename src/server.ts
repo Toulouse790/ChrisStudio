@@ -259,7 +259,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 
 httpServer.listen(PORT, async () => {
-  console.log('\n🎬 YouTube Creator Studio Server');
+  console.log('\n🎬 ChrisStudio Server');
   console.log('='.repeat(50));
   console.log(`🌐 Web UI:  http://localhost:${PORT}`);
   console.log(`📡 API:     http://localhost:${PORT}/api`);

@@ -32,7 +32,7 @@ async function main() {
       const channelId = args[1] || 'what-if';
       const topic = args.slice(2).join(' ') || 'What if humans could live forever?';
       
-      console.log(`\n🎬 YouTube Creator Studio`);
+      console.log(`\n🎬 ChrisStudio`);
       console.log(`${'='.repeat(50)}\n`);
       console.log(`📺 Channel: ${channelId}`);
       console.log(`📝 Topic: ${topic}\n`);
@@ -86,7 +86,7 @@ async function main() {
       break;
       
     default:
-      console.log('\n🎬 YouTube Creator Studio CLI\n');
+      console.log('\n🎬 ChrisStudio CLI\n');
       console.log('Commands:');
       console.log('  npm run generate:full [channel] [topic]  - Full pipeline (script→audio→assets→video)');
       console.log('  npm run generate [channel] [topic]       - Generate script & audio only');

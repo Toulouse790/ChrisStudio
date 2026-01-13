@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-console.log('🎬 YouTube Creator Studio');
+console.log('🎬 ChrisStudio');
 console.log('📺 Multi-channel automation ready!');
 console.log('');
 console.log('Available channels:');

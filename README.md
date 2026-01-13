@@ -1,6 +1,8 @@
-# 🎬 YouTube Creator Studio
+# 🎬 ChrisStudio
 
-Multi-channel YouTube video automation studio for generating documentary-style videos with AI.
+Copyright (c) 2026 Christophe SENTENAC
+
+ChrisStudio is a multi-channel YouTube video automation studio for generating documentary-style videos with AI.
 
 ## 📺 Channels
 

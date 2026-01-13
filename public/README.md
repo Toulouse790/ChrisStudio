@@ -1,6 +1,6 @@
 # 🎨 Frontend Architecture
 
-Ce dossier contient l'interface web du YouTube Creator Studio.
+Ce dossier contient l'interface web de ChrisStudio.
 
 ## 📁 Structure
 

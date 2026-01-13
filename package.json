@@ -1,7 +1,7 @@
 {
-  "name": "youtube-creator-studio",
+  "name": "chrisstudio",
   "version": "1.0.0",
-  "description": "Multi-channel YouTube video automation studio",
+  "description": "ChrisStudio - Multi-channel YouTube video automation studio",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
@@ -25,7 +25,8 @@
     "video",
     "ai"
   ],
-  "author": "Toulouse790",
+  "author": "Christophe SENTENAC",
+  "copyright": "Copyright (c) 2026 Christophe SENTENAC",
   "license": "MIT",
   "dependencies": {
     "axios": "^1.7.9",
