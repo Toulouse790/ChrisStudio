@@ -1,21 +1,22 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { Channel, VideoScript } from '../types/index.js';
 
 export class ScriptGenerator {
-  private client: Anthropic;
+  private client: OpenAI;
 
   constructor() {
-    this.client = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY
+    this.client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
     });
   }
 
   async generateScript(channel: Channel, topic: string): Promise<VideoScript> {
     const prompt = this.buildPrompt(channel, topic);
     
-    const message = await this.client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+    const message = await this.client.chat.completions.create({
+      model: 'gpt-4o',
       max_tokens: 4000,
+      temperature: 0.8,
       messages: [
         {
           role: 'user',
@@ -24,12 +25,12 @@ export class ScriptGenerator {
       ]
     });
 
-    const content = message.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type');
+    const content = message.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No response from OpenAI');
     }
 
-    return this.parseScript(content.text);
+    return this.parseScript(content);
   }
 
   private buildPrompt(channel: Channel, topic: string): string {

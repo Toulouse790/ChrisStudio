@@ -4,7 +4,7 @@ Ce dossier contient des exemples de sorties générées par le YouTube Creator S
 
 ## 📄 sample-script.json
 
-Un exemple de script généré par Claude pour la chaîne "What If...".
+Un exemple de script généré par OpenAI GPT-4 pour la chaîne "What If...".
 
 **Thème:** "What If Humans Could Live Forever?"
 

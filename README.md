@@ -34,12 +34,12 @@ pip install edge-tts
 cp .env.example .env
 
 # Add your API keys to .env
-# ANTHROPIC_API_KEY=your_claude_key_here
+# OPENAI_API_KEY=your_openai_key_here
 # PEXELS_API_KEY=your_pexels_key_here
 ```
 
 **Get API Keys:**
-- **Claude**: [https://console.anthropic.com/](https://console.anthropic.com/)
+- **OpenAI**: [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 - **Pexels** (free): [https://www.pexels.com/api/](https://www.pexels.com/api/) - See [docs/PEXELS_SETUP.md](docs/PEXELS_SETUP.md)
 
 ### Usage
@@ -76,7 +76,7 @@ src/
 ├── config/
 │   └── channels.ts          # Channel configurations
 ├── services/
-│   ├── script-generator.ts  # Claude API for scripts
+│   ├── script-generator.ts  # OpenAI GPT-4 for scripts
 │   ├── voice-generator.ts   # Edge TTS for narration
 │   └── video-composer.ts    # FFmpeg for video assembly
 ├── tests/
@@ -95,7 +95,7 @@ output/
 ## 🎯 Features
 
 - ✅ Multi-channel support (3 channels)
-- ✅ AI-powered script generation (Claude Sonnet 4)
+- ✅ AI-powered script generation (OpenAI GPT-4o)
 - ✅ High-quality voice synthesis (Edge TTS)
 - ✅ Automatic asset collection (Pexels API)
 - ✅ Professional video composition (FFmpeg)
@@ -106,7 +106,7 @@ output/
 
 ## 🔧 Technology Stack
 
-- **Script Generation**: Claude (Anthropic)
+- **Script Generation**: GPT-4o (OpenAI)
 - **Voice**: Edge TTS (Microsoft)
 - **Video**: FFmpeg
 - **Language**: TypeScript + Node.js
@@ -119,7 +119,7 @@ npm run generate:full what-if "What if we could control the weather?"
 ```
 
 This single command will:
-1. ✅ **Generate Script**: Claude creates a 9-minute script with visual cues
+1. ✅ **Generate Script**: GPT-4o creates a 9-minute script with visual cues
 2. ✅ **Generate Audio**: Edge TTS converts script to narration
 3. ✅ **Collect Assets**: Searches and downloads images/videos from Pexels
 4. ✅ **Compose Video**: FFmpeg assembles everything with transitions

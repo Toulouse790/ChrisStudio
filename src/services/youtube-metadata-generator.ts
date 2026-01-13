@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { VideoScript } from '../types/index.js';
 import axios from 'axios';
 
@@ -17,14 +17,14 @@ export interface YouTubeMetadata {
 }
 
 export class YouTubeMetadataGenerator {
-  private client: Anthropic;
+  private client: OpenAI;
 
   constructor() {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY not found in environment');
+      throw new Error('OPENAI_API_KEY not found in environment');
     }
-    this.client = new Anthropic({ apiKey });
+    this.client = new OpenAI({ apiKey });
   }
 
   async generateMetadata(
@@ -104,23 +104,24 @@ Return as JSON:
   }
 }`;
 
-    const response = await this.client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+    const response = await this.client.chat.completions.create({
+      model: 'gpt-4o',
       max_tokens: 2000,
+      temperature: 0.7,
       messages: [{
         role: 'user',
         content: prompt
       }]
     });
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No response from OpenAI');
     }
 
     // Extract JSON from markdown code blocks
-    const jsonMatch = content.text.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
-    const jsonText = jsonMatch ? jsonMatch[1] : content.text;
+    const jsonMatch = content.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
+    const jsonText = jsonMatch ? jsonMatch[1] : content;
 
     const metadata = JSON.parse(jsonText);
 
