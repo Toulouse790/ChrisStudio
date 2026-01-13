@@ -69,6 +69,19 @@ function renderCalendar() {
         <div class="video-channel">${channel?.name || video.channelId}</div>
         
         ${video.status === 'ready' && video.videoPath ? `
+          ${video.metadata ? `
+            <div style="margin: 1rem 0; padding: 0.75rem; background: rgba(99, 102, 241, 0.1); border-radius: 8px; font-size: 0.875rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>📊 SEO Score: <strong>${video.metadata.seoScore}/100</strong></span>
+                <span>${video.metadata.seoScore >= 80 ? '🎯' : video.metadata.seoScore >= 60 ? '👍' : '📈'}</span>
+              </div>
+              ${video.metadata.trendingKeywords?.length > 0 ? `
+                <div style="margin-top: 0.5rem; color: var(--text-secondary);">
+                  🔥 ${video.metadata.trendingKeywords.slice(0, 3).join(', ')}
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
           <div class="video-actions">
             <button class="action-btn btn-preview" onclick="previewVideo('${video.id}', '${video.videoPath}')">
               👁️ Prévisualiser
