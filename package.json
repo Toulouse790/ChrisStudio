@@ -18,24 +18,30 @@
     "generate:full": "tsx src/cli.ts full",
     "voices": "tsx src/cli.ts voices"
   },
-  "keywords": ["youtube", "automation", "video", "ai"],
+  "keywords": [
+    "youtube",
+    "automation",
+    "video",
+    "ai"
+  ],
   "author": "Toulouse790",
   "license": "MIT",
   "dependencies": {
-    "fluent-ffmpeg": "^2.1.3",
     "@anthropic-ai/sdk": "^0.27.0",
     "axios": "^1.7.9",
-    "dotenv": "^16.4.7",
-    "zod": "^3.24.1",
-    "express": "^4.21.2",
     "cors": "^2.8.5",
-    "socket.io": "^4.8.1"
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "fluent-ffmpeg": "^2.1.3",
+    "googleapis": "^144.0.0",
+    "socket.io": "^4.8.1",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
     "@types/fluent-ffmpeg": "^2.1.27",
     "@types/node": "^22.10.5",
-    "@types/express": "^5.0.0",
-    "@types/cors": "^2.8.17",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vitest": "^2.1.8"

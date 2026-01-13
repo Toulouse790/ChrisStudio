@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendrier - YouTube Creator Studio</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .calendar-view {
+      display: grid;
+      gap: 2rem;
+    }
+
+    .calendar-filters {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 0.5rem 1rem;
+      border: 2px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .filter-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .calendar-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .video-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .video-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+    }
+
+    .video-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 1rem;
+    }
+
+    .video-date {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .video-status {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-pending { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+    .status-generating { background: rgba(99, 102, 241, 0.2); color: #6366f1; }
+    .status-ready { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .status-published { background: rgba(147, 51, 234, 0.2); color: #9333ea; }
+    .status-failed { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+    .video-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .video-channel {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      background: var(--primary);
+      color: white;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .video-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .btn-preview {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-preview:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-publish {
+      background: #22c55e;
+      color: white;
+    }
+
+    .btn-publish:hover {
+      background: #16a34a;
+    }
+
+    .btn-delete {
+      background: #ef4444;
+      color: white;
+      flex: 0 0 auto;
+      padding: 0.5rem 0.75rem;
+    }
+
+    .btn-delete:hover {
+      background: #dc2626;
+    }
+
+    .video-preview {
+      width: 100%;
+      border-radius: 8px;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .video-preview.visible {
+      display: block;
+    }
+
+    .schedule-form {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-secondary);
+    }
+
+    .empty-state h3 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 800px;
+      width: 100%;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-brand">
+        <h1>🎬 YouTube Creator Studio</h1>
+      </div>
+      <div class="nav-links">
+        <a href="/">Générer</a>
+        <a href="/calendar.html" class="active">Calendrier</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container" style="margin-top: 2rem;">
+    <div class="schedule-form">
+      <h2>📅 Planifier une nouvelle vidéo</h2>
+      <form id="scheduleForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="channelSelect">Chaîne</label>
+            <select id="channelSelect" required>
+              <option value="">Sélectionnez...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="scheduleDateInput">Date et heure</label>
+            <input type="datetime-local" id="scheduleDateInput" required>
+          </div>
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn btn-primary">Planifier</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="topicInput">Sujet de la vidéo</label>
+          <input type="text" id="topicInput" placeholder="Ex: What if humans could fly?" required>
+        </div>
+      </form>
+    </div>
+
+    <div class="calendar-view">
+      <div class="calendar-filters">
+        <button class="filter-btn active" data-filter="all">Toutes</button>
+        <button class="filter-btn" data-filter="pending">En attente</button>
+        <button class="filter-btn" data-filter="generating">En cours</button>
+        <button class="filter-btn" data-filter="ready">Prêtes</button>
+        <button class="filter-btn" data-filter="published">Publiées</button>
+        <button class="filter-btn" data-filter="failed">Échouées</button>
+      </div>
+
+      <div class="calendar-grid" id="calendarGrid">
+        <div class="empty-state">
+          <h3>📅 Chargement du calendrier...</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div class="modal" id="previewModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>👁️ Prévisualisation</h2>
+        <button class="modal-close" onclick="closePreview()">×</button>
+      </div>
+      <video id="previewVideo" controls class="video-preview visible"></video>
+    </div>
+  </div>
+
+  <!-- Publish Modal -->
+  <div class="modal" id="publishModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📤 Publier sur YouTube</h2>
+        <button class="modal-close" onclick="closePublish()">×</button>
+      </div>
+      <form id="publishForm">
+        <input type="hidden" id="publishVideoId">
+        <div class="form-group">
+          <label for="youtubeTitle">Titre</label>
+          <input type="text" id="youtubeTitle" required maxlength="100">
+        </div>
+        <div class="form-group">
+          <label for="youtubeDescription">Description</label>
+          <textarea id="youtubeDescription" rows="5" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="youtubeTags">Tags (séparés par des virgules)</label>
+          <input type="text" id="youtubeTags" placeholder="science, documentary, education">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="youtubePrivacy">Visibilité</label>
+            <select id="youtubePrivacy" required>
+              <option value="private">Privée</option>
+              <option value="unlisted">Non répertoriée</option>
+              <option value="public">Publique</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="youtubeCategory">Catégorie</label>
+            <select id="youtubeCategory" required>
+              <option value="28">Science & Technology</option>
+              <option value="27">Education</option>
+              <option value="22">People & Blogs</option>
+              <option value="24">Entertainment</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary">Publier maintenant</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="calendar.js"></script>
+</body>
+</html>
