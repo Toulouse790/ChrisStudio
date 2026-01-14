@@ -4,7 +4,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { promisify } from 'util';
 import { exec } from 'child_process';
-import { Asset } from '../types/index.js';
+import { Asset, AssetCategory } from '../types/index.js';
 
 const execAsync = promisify(exec);
 
@@ -16,6 +16,10 @@ export interface AssetLibraryEntry {
   channelId?: string;
   searchQuery?: string;
   tags: string[];
+  /** Reuse category: evergreen (generic) vs episode_specific (topic-specific). */
+  category?: AssetCategory;
+  /** Normalized keywords derived from searchQuery/tags. */
+  keywords?: string[];
   createdAt: string;
   lastUsedAt?: string;
   timesUsed?: number;
@@ -34,8 +38,15 @@ export interface AssetLibraryConfig {
   indexPath?: string;
   /** Prefer local assets before calling Pexels. Default: true */
   preferLocalAssets?: boolean;
-  /** Avoid reuse within X days (unless library insufficient). Default: 7 */
+  /** Avoid reuse within X days for evergreen assets (unless library insufficient). Default: 7 */
   reuseWindowDays?: number;
+  /** Avoid reuse within X days for episode-specific assets (unless library insufficient). Default: 30 */
+  episodeSpecificReuseWindowDays?: number;
+  /**
+   * If true, allows reusing assets even inside the reuse window when the library cannot satisfy a request.
+   * Default: false (prefer filling via Pexels instead of breaking anti-repetition rules).
+   */
+  allowRecentWhenInsufficient?: boolean;
   /** Minimum score to accept local match. Default: 1 */
   minScore?: number;
 }
@@ -45,6 +56,7 @@ export interface FindLocalOptions {
   preferredType: 'image' | 'video';
   count: number;
   channelId?: string;
+  category?: AssetCategory;
   excludeIds?: Set<string>;
   excludeLocalPaths?: Set<string>;
 }
@@ -52,7 +64,9 @@ export interface FindLocalOptions {
 export class AssetLibrary {
   private indexPath: string;
   private preferLocalAssets: boolean;
-  private reuseWindowDays: number;
+  private evergreenReuseWindowDays: number;
+  private episodeSpecificReuseWindowDays: number;
+  private allowRecentWhenInsufficient: boolean;
   private minScore: number;
 
   private loaded = false;
@@ -66,7 +80,13 @@ export class AssetLibrary {
       typeof config.preferLocalAssets === 'boolean'
         ? config.preferLocalAssets
         : (process.env.PREFER_LOCAL_ASSETS ?? 'true').toLowerCase() !== 'false';
-    this.reuseWindowDays = config.reuseWindowDays ?? parseInt(process.env.ASSET_REUSE_DAYS || '7', 10);
+    this.evergreenReuseWindowDays = config.reuseWindowDays ?? parseInt(process.env.ASSET_REUSE_DAYS || '7', 10);
+    this.episodeSpecificReuseWindowDays =
+      config.episodeSpecificReuseWindowDays ?? parseInt(process.env.ASSET_EPISODE_SPECIFIC_REUSE_DAYS || '30', 10);
+    this.allowRecentWhenInsufficient =
+      typeof config.allowRecentWhenInsufficient === 'boolean'
+        ? config.allowRecentWhenInsufficient
+        : (process.env.ALLOW_RECENT_ASSET_REUSE ?? 'false').toLowerCase() === 'true';
     this.minScore = config.minScore ?? parseFloat(process.env.ASSET_LIBRARY_MIN_SCORE || '1');
   }
 
@@ -98,6 +118,23 @@ export class AssetLibrary {
     } catch {
       // Corrupt index: start fresh (robustness over failure).
       this.index = { version: 1, entries: [] };
+    }
+
+    // Backward-compat: derive missing category/keywords for older entries.
+    let changed = false;
+    for (const e of this.index.entries) {
+      if (!e.category) {
+        e.category = this.deriveCategory(e.searchQuery || e.tags?.join(' ') || '');
+        changed = true;
+      }
+      if (!e.keywords || e.keywords.length === 0) {
+        e.keywords = this.tokenizeTags(e.searchQuery || e.tags?.join(' ') || '');
+        changed = true;
+      }
+    }
+    if (changed) {
+      // Don’t block startup; persist soon.
+      this.scheduleSave();
     }
 
     this.loaded = true;
@@ -158,6 +195,9 @@ export class AssetLibrary {
 
     const now = new Date().toISOString();
     const tags = this.tokenizeTags(asset.tags?.length ? asset.tags.join(' ') : (asset.searchQuery || ''));
+    const searchQuery = asset.searchQuery || '';
+    const category = this.deriveCategory(searchQuery);
+    const keywords = this.tokenizeTags(searchQuery || tags.join(' '));
 
     // Optional sha1 dedup for images
     let sha1: string | undefined;
@@ -185,6 +225,8 @@ export class AssetLibrary {
         channelId: asset.channelId,
         searchQuery: asset.searchQuery,
         tags,
+        category,
+        keywords,
         createdAt: now,
         lastUsedAt: now,
         timesUsed: 1,
@@ -197,6 +239,8 @@ export class AssetLibrary {
       entry.channelId = entry.channelId || asset.channelId;
       entry.searchQuery = entry.searchQuery || asset.searchQuery;
       entry.tags = Array.from(new Set([...(entry.tags || []), ...tags]));
+      entry.category = entry.category || category;
+      entry.keywords = Array.from(new Set([...(entry.keywords || []), ...keywords]));
       entry.lastUsedAt = now;
       entry.timesUsed = (entry.timesUsed || 0) + 1;
       entry.mediaDurationSeconds = entry.mediaDurationSeconds || mediaDurationSeconds;
@@ -218,6 +262,11 @@ export class AssetLibrary {
 
     const candidates = this.index.entries
       .filter(e => e.type === options.preferredType)
+      .filter(e => {
+        if (!options.category) return true;
+        const cat = e.category || this.deriveCategory(e.searchQuery || e.tags?.join(' ') || '');
+        return cat === options.category;
+      })
       .filter(e => !excludeIds.has(e.id))
       .filter(e => !excludeLocalPaths.has(path.normalize(e.localPath)))
       .filter(e => existsSync(e.localPath))
@@ -228,11 +277,14 @@ export class AssetLibrary {
     if (candidates.length === 0) return [];
 
     const now = Date.now();
-    const windowMs = this.reuseWindowDays * 24 * 60 * 60 * 1000;
+    const evergreenWindowMs = this.evergreenReuseWindowDays * 24 * 60 * 60 * 1000;
+    const episodeSpecificWindowMs = this.episodeSpecificReuseWindowDays * 24 * 60 * 60 * 1000;
 
     const notRecent = candidates.filter(c => {
       if (!c.entry.lastUsedAt) return true;
       const t = Date.parse(c.entry.lastUsedAt);
+      const category = c.entry.category || this.deriveCategory(c.entry.searchQuery || c.entry.tags?.join(' ') || '');
+      const windowMs = category === 'episode_specific' ? episodeSpecificWindowMs : evergreenWindowMs;
       return Number.isFinite(t) ? (now - t) > windowMs : true;
     });
 
@@ -242,8 +294,9 @@ export class AssetLibrary {
       if (selected.length >= options.count) break;
     }
 
-    // If library is insufficient, allow recent assets.
-    if (selected.length < options.count) {
+    // If library is insufficient, optionally allow recent assets.
+    // Default behavior is strict: caller should fill via Pexels instead of violating anti-repetition.
+    if (this.allowRecentWhenInsufficient && selected.length < options.count) {
       for (const c of candidates) {
         if (selected.some(s => s.id === c.entry.id)) continue;
         selected.push(c.entry);
@@ -260,8 +313,67 @@ export class AssetLibrary {
       channelId: e.channelId,
       searchQuery: e.searchQuery,
       tags: e.tags,
+      category: e.category || this.deriveCategory(e.searchQuery || e.tags?.join(' ') || ''),
+      keywords: e.keywords?.length ? e.keywords : this.tokenizeTags(e.searchQuery || e.tags?.join(' ') || ''),
       mediaDurationSeconds: e.mediaDurationSeconds
     }));
+  }
+
+  private deriveCategory(searchQuery: string): AssetCategory {
+    const qRaw = (searchQuery || '').trim();
+    if (!qRaw) return 'evergreen';
+
+    const q = this.normalizeText(qRaw);
+
+    // Heuristics: treat highly specific entities/events/dates as episode_specific.
+    // Intentionally conservative: better to label as episode_specific when unsure.
+    const hasQuoted = /["“”'’]/.test(qRaw);
+    const hasYear = /\b(1[0-9]{3}|20[0-9]{2}|[5-9][0-9]{2})\b/.test(q);
+    const hasEraMarker = /\b(bc|bce|ad|ce)\b/.test(q);
+    const hasOrdinalCentury = /\b\d{1,2}(st|nd|rd|th)\b/.test(q);
+    const hasRomanNumeral = /\b[ivxlcdm]{2,}\b/.test(q);
+    const hasCapitalizedToken = /\b[A-Z][a-z]{2,}\b/.test(qRaw);
+
+    const specificEventKeywords = [
+      'battle',
+      'siege',
+      'assassination',
+      'treaty',
+      'dynasty',
+      'revolution',
+      'uprising',
+      'incident',
+      'operation',
+      'crisis',
+      'war',
+      'crusade',
+      'coup',
+      'massacre'
+    ];
+    const hasEventMarker = specificEventKeywords.some(h => q.includes(h));
+
+    // Topic/entity-ish tokens that typically make a query “episode specific” even when lowercased.
+    const topicSpecificTokens = [
+      // Civilizations / eras / cultures
+      'roman', 'rome', 'greek', 'greece', 'sparta', 'athens',
+      'egypt', 'egyptian', 'pharaoh',
+      'viking', 'norse',
+      'medieval', 'middle ages',
+      'byzantine', 'ottoman', 'persian', 'mongol',
+      'aztec', 'maya', 'mayan', 'inca',
+      // Places often used as specific anchors
+      'england', 'france', 'spain', 'italy', 'germany',
+      'china', 'japan', 'india',
+      // People / titles
+      'caesar', 'emperor', 'king', 'queen', 'pharaoh'
+    ];
+    const hasTopicToken = topicSpecificTokens.some(t => q.includes(t));
+
+    if (hasQuoted || hasYear || hasEraMarker || hasOrdinalCentury || hasRomanNumeral || hasCapitalizedToken || hasEventMarker || hasTopicToken) {
+      return 'episode_specific';
+    }
+
+    return 'evergreen';
   }
 
   private score(queryTokens: Set<string>, entry: AssetLibraryEntry, channelId?: string): number {
@@ -294,11 +406,17 @@ export class AssetLibrary {
     return score;
   }
 
+  private normalizeText(text: string): string {
+    return (text || '')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  }
+
   private tokenize(text: string): Set<string> {
     return new Set(
-      (text || '')
-        .toLowerCase()
-        .split(/[^a-z0-9]+/g)
+      this.normalizeText(text)
+        .split(/[^\p{L}\p{N}]+/gu)
         .map(s => s.trim())
         .filter(Boolean)
         .filter(s => s.length > 2)
@@ -337,4 +455,8 @@ const STOPWORDS = new Set([
   'what', 'when', 'where', 'why', 'how', 'a', 'an', 'to', 'of', 'in', 'on',
   'at', 'by', 'as', 'or', 'is', 'it', 'be', 'we', 'us', 'not', 'no', 'yes',
   'more', 'most', 'less', 'many', 'much', 'new', 'old', 'case', 'file',
+  // French/common fillers
+  'le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'd', 'et', 'ou', 'pour',
+  'avec', 'dans', 'sur', 'sous', 'ce', 'cet', 'cette', 'ces', 'comme',
+  'plus', 'moins', 'tres', 'trop', 'sans',
 ]);

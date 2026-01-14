@@ -5,8 +5,17 @@ export interface Channel {
   style: ChannelStyle;
   pacing?: ChannelPacing;
   visualMix?: VisualMix;
+  /** How to balance local-library reuse across categories (defaults are applied in code if omitted). */
+  assetReuseMix?: AssetReuseMix;
   branding?: ChannelBranding;
   voice: VoiceConfig;
+}
+
+export type AssetCategory = 'evergreen' | 'episode_specific';
+
+export interface AssetReuseMix {
+  evergreen: number; // 0..1
+  episode_specific: number; // 0..1
 }
 
 export interface ChannelPacing {
@@ -92,6 +101,11 @@ export interface Asset {
   /** Target duration for the segment this asset will cover (seconds). */
   duration?: number;
   attribution?: string;
+
+  /** Library category, used for controlled reuse. */
+  category?: AssetCategory;
+  /** Normalized keywords derived from searchQuery/tags. */
+  keywords?: string[];
 
   /** Metadata used for library indexing/matching (optional). */
   source?: 'pexels' | 'library';

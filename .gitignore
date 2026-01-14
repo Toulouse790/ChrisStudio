@@ -6,6 +6,7 @@ assets/test/
 assets/library.json
 assets/library.json.tmp
 .env
+secrets/
 *.log
 *.mp3
 *.mp4

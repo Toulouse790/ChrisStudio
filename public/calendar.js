@@ -278,7 +278,12 @@ document.getElementById('publishForm').addEventListener('submit', async (e) => {
       window.open(result.youtubeUrl, '_blank');
     } else {
       const error = await response.json();
-      alert('❌ Erreur: ' + error.error);
+      if (error && error.error === 'PREPUBLISH_FAILED' && error.report && Array.isArray(error.report.checks)) {
+        const failed = error.report.checks.filter(c => !c.ok).map(c => `- ${c.label}${c.details ? ` (${c.details})` : ''}`).slice(0, 8);
+        alert('⛔ Publication bloquée: checks pré-upload en échec.\n\n' + failed.join('\n'));
+      } else {
+        alert('❌ Erreur: ' + (error.error || 'Upload failed'));
+      }
     }
   } catch (error) {
     alert('❌ Erreur de connexion');

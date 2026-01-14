@@ -89,6 +89,62 @@
                 <div class="card result-card" id="resultCard" style="display: none;">
                     <h3>✅ Video Ready!</h3>
                     <div class="result-info" id="resultInfo"></div>
+
+                    <div class="youtube-card" id="youtubeCard">
+                        <h3>📤 Publish to YouTube</h3>
+                        <p class="youtube-status" id="ytStatusText">Checking YouTube connection…</p>
+
+                        <div class="checks-card">
+                            <h4>✅ Checks automatiques (avant upload)</h4>
+                            <div id="ytChecks" class="checks-list">
+                                <p class="loading">Chargement des checks…</p>
+                            </div>
+                            <div id="ytFixActions" class="checks-actions"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ytTitle">Title</label>
+                            <input type="text" id="ytTitle" placeholder="Video title" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ytDescription">Description</label>
+                            <textarea id="ytDescription" rows="6" placeholder="Video description"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ytTags">Tags (comma-separated)</label>
+                            <input type="text" id="ytTags" placeholder="history, documentary, ancient" />
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="ytCategoryId">Category ID</label>
+                                <input type="text" id="ytCategoryId" value="22" />
+                                <small>Common default: 22 (People & Blogs)</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="ytPrivacy">Privacy</label>
+                                <select id="ytPrivacy">
+                                    <option value="unlisted" selected>Unlisted</option>
+                                    <option value="private">Private</option>
+                                    <option value="public">Public</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="result-actions">
+                            <button class="btn-secondary" id="ytConnectBtn" type="button">🔐 Connect YouTube</button>
+                            <button class="btn-primary" id="ytPublishBtn" type="button">🚀 Publish to YouTube</button>
+                        </div>
+
+                        <div class="progress-bar small" id="ytProgressBar" style="display:none; margin-top: 12px;">
+                            <div class="progress-fill" id="ytProgressFill"></div>
+                        </div>
+                        <div class="progress-log" id="ytLog" style="margin-top: 12px; max-height: 220px;"></div>
+                    </div>
+
                     <div class="result-actions">
                         <a href="#" class="btn-secondary" id="downloadBtn" target="_blank">
                             📥 Download Video

@@ -1,6 +1,7 @@
 import axios from 'axios';
-import { Asset, ScriptSection, VisualRequest } from '../types/index.js';
+import { Asset, AssetCategory, AssetReuseMix, ScriptSection, VisualRequest } from '../types/index.js';
 import { AssetLibrary } from './asset-library.js';
+import { channels } from '../config/channels.js';
 
 interface PexelsPhoto {
   id: number;
@@ -66,6 +67,9 @@ export class AssetCollector {
     const usedLibraryIds = new Set<string>();
     const usedUrls = new Set<string>();
 
+    // Track per-channel category usage within the current generation (for ratio control).
+    const categoryCounts = new Map<string, { evergreen: number; episode_specific: number }>();
+
     const preferLocal = this.library.isPreferLocalEnabled();
     if (preferLocal) {
       await this.library.ensureLoaded();
@@ -84,6 +88,8 @@ export class AssetCollector {
 
       const channelId = req.channelId;
       const tags = this.deriveTags(req.searchQuery);
+
+      const targetCategory = this.pickTargetCategory(channelId, categoryCounts);
       
       try {
         // 1) Reuse-first from local library (never repeat within same video)
@@ -93,6 +99,7 @@ export class AssetCollector {
             preferredType: req.preferredType,
             count: 1,
             channelId,
+            category: targetCategory,
             excludeIds: usedLibraryIds,
             excludeLocalPaths: usedLocalPaths
           });
@@ -106,6 +113,7 @@ export class AssetCollector {
               preferredType: 'image',
               count: 1,
               channelId,
+              category: targetCategory,
               excludeIds: usedLibraryIds,
               excludeLocalPaths: usedLocalPaths
             });
@@ -124,9 +132,15 @@ export class AssetCollector {
               channelId: channelId || chosenLocal.channelId,
               searchQuery: req.searchQuery,
               tags: chosenLocal.tags?.length ? chosenLocal.tags : tags,
+              category: chosenLocal.category || targetCategory,
+              keywords: chosenLocal.keywords,
               attribution: chosenLocal.attribution || 'From local library'
             });
             fromLibrary++;
+
+            if (channelId) {
+              this.bumpCategoryCount(categoryCounts, channelId, chosenLocal.category || targetCategory);
+            }
             if (libId) {
               await this.library.markUsedById(libId).catch(() => undefined);
             }
@@ -182,12 +196,17 @@ export class AssetCollector {
           source: 'pexels',
           channelId,
           searchQuery: req.searchQuery,
-          tags
+          tags,
+          category: targetCategory
         };
         
         assets.push(asset);
         usedUrls.add(asset.url);
         fromPexels++;
+
+        if (channelId) {
+          this.bumpCategoryCount(categoryCounts, channelId, targetCategory);
+        }
         console.log(`✅ Found ${asset.type}: ${asset.url.substring(0, 60)}...`);
         
         // Gentle pacing (still keeps us well under Pexels limits with caching)
@@ -221,6 +240,45 @@ export class AssetCollector {
           .filter(s => !STOPWORDS.has(s))
       )
     );
+  }
+
+  private getReuseMixForChannel(channelId?: string): AssetReuseMix {
+    if (!channelId) return { evergreen: 0.7, episode_specific: 0.3 };
+    const mix = channels[channelId]?.assetReuseMix;
+    if (!mix) return { evergreen: 0.7, episode_specific: 0.3 };
+
+    const evergreen = Number.isFinite(mix.evergreen) ? mix.evergreen : 0.7;
+    const episode_specific = Number.isFinite(mix.episode_specific) ? mix.episode_specific : 0.3;
+    const sum = evergreen + episode_specific;
+    if (sum <= 0) return { evergreen: 0.7, episode_specific: 0.3 };
+    return { evergreen: evergreen / sum, episode_specific: episode_specific / sum };
+  }
+
+  private bumpCategoryCount(
+    categoryCounts: Map<string, { evergreen: number; episode_specific: number }>,
+    channelId: string,
+    category: AssetCategory
+  ): void {
+    const curr = categoryCounts.get(channelId) || { evergreen: 0, episode_specific: 0 };
+    if (category === 'episode_specific') curr.episode_specific += 1;
+    else curr.evergreen += 1;
+    categoryCounts.set(channelId, curr);
+  }
+
+  private pickTargetCategory(
+    channelId: string | undefined,
+    categoryCounts: Map<string, { evergreen: number; episode_specific: number }>
+  ): AssetCategory {
+    if (!channelId) return 'evergreen';
+
+    const mix = this.getReuseMixForChannel(channelId);
+    const curr = categoryCounts.get(channelId) || { evergreen: 0, episode_specific: 0 };
+    const total = curr.evergreen + curr.episode_specific;
+
+    // Greedy balancing: keep realized evergreen share close to target.
+    if (total === 0) return mix.evergreen >= mix.episode_specific ? 'evergreen' : 'episode_specific';
+    const realizedEvergreen = curr.evergreen / total;
+    return realizedEvergreen < mix.evergreen ? 'evergreen' : 'episode_specific';
   }
 
   private estimateNeededForQuery(requests: VisualRequest[], req: VisualRequest): number {

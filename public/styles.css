@@ -292,6 +292,122 @@ body {
     animation: fadeIn 0.5s ease-out;
 }
 
+.youtube-card {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.checks-card {
+    margin: 12px 0 16px 0;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+}
+
+.checks-card h4 {
+    margin-bottom: 10px;
+    font-size: 15px;
+    color: var(--text);
+}
+
+.checks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.check-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.check-item.ok {
+    border-color: rgba(16, 185, 129, 0.45);
+}
+
+.check-item.bad {
+    border-color: rgba(239, 68, 68, 0.55);
+}
+
+.check-left {
+    display: flex;
+    flex-direction: column;
+}
+
+.check-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.check-details {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.check-badge {
+    font-weight: 800;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.check-badge.ok {
+    color: var(--success);
+}
+
+.check-badge.bad {
+    color: var(--error);
+}
+
+.checks-actions {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.checks-actions .btn-secondary {
+    padding: 10px 14px;
+    font-size: 14px;
+}
+
+.youtube-status {
+    color: var(--text-muted);
+    margin-top: -8px;
+    margin-bottom: 14px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 700px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.progress-bar.small {
+    height: 10px;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }

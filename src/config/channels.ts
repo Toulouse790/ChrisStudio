@@ -5,6 +5,10 @@ export const channels: Record<string, Channel> = {
     id: 'what-if',
     name: 'What If...',
     description: 'Hypothetical scenarios and future possibilities',
+    assetReuseMix: {
+      evergreen: 0.6,
+      episode_specific: 0.4
+    },
     pacing: {
       minShotSeconds: 4,
       maxShotSeconds: 7
@@ -49,6 +53,10 @@ export const channels: Record<string, Channel> = {
     id: 'human-odyssey',
     name: 'The Human Odyssey',
     description: 'History and civilization exploration',
+    assetReuseMix: {
+      evergreen: 0.7,
+      episode_specific: 0.3
+    },
     pacing: {
       minShotSeconds: 6,
       maxShotSeconds: 8
@@ -93,6 +101,10 @@ export const channels: Record<string, Channel> = {
     id: 'classified-files',
     name: 'Classified Files',
     description: 'Mysteries and unexplained phenomena',
+    assetReuseMix: {
+      evergreen: 0.8,
+      episode_specific: 0.2
+    },
     pacing: {
       minShotSeconds: 6,
       maxShotSeconds: 8
