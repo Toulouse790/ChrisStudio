@@ -1,9 +1,7 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 import { mkdir } from 'fs/promises';
 import { VoiceConfig } from '../types/index.js';
-
-const execAsync = promisify(exec);
+import logger from '../utils/logger.js';
 
 export class VoiceGenerator {
   private outputDir: string;
@@ -18,35 +16,88 @@ export class VoiceGenerator {
     outputFile: string
   ): Promise<string> {
     await mkdir(this.outputDir, { recursive: true });
-    
+
     const outputPath = `${this.outputDir}/${outputFile}`;
-    
-    // Clean text for shell command
-    const cleanText = text.replace(/"/g, '\\"').replace(/\n/g, ' ');
-    
-    // Edge TTS command
-    const command = `edge-tts --voice ${voiceConfig.voice} --rate=${voiceConfig.rate} --pitch=${voiceConfig.pitch} --text "${cleanText}" --write-media ${outputPath}`;
-    
-    console.log(`🎤 Generating audio with ${voiceConfig.voice}...`);
-    
-    try {
-      await execAsync(command);
-      console.log(`✅ Audio generated: ${outputPath}`);
-      return outputPath;
-    } catch (error) {
-      console.error('❌ Edge TTS error:', error);
-      throw error;
-    }
+
+    const cleanText = text.replace(/\n/g, ' ').trim();
+
+    logger.info({ voice: voiceConfig.voice, outputPath }, 'Generating audio with Edge TTS');
+
+    return new Promise((resolve, reject) => {
+      const args = [
+        '--voice', voiceConfig.voice,
+        `--rate=${voiceConfig.rate}`,
+        `--pitch=${voiceConfig.pitch}`,
+        '--text', cleanText,
+        '--write-media', outputPath
+      ];
+
+      const proc = spawn('edge-tts', args, {
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+
+      let stderr = '';
+
+      proc.stderr.on('data', (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      proc.on('close', (code) => {
+        if (code === 0) {
+          logger.info({ outputPath }, 'Audio generated successfully');
+          resolve(outputPath);
+        } else {
+          logger.error({ code, stderr }, 'Edge TTS failed');
+          reject(new Error(`Edge TTS failed with code ${code}: ${stderr}`));
+        }
+      });
+
+      proc.on('error', (err) => {
+        logger.error({ error: err.message }, 'Edge TTS spawn error');
+        reject(new Error(`Failed to spawn edge-tts: ${err.message}. Make sure edge-tts is installed: pip install edge-tts`));
+      });
+    });
   }
 
   async listAvailableVoices(): Promise<void> {
-    console.log('🎙️ Available English voices:\n');
-    try {
-      const { stdout } = await execAsync('edge-tts --list-voices | grep "en-"');
-      console.log(stdout);
-    } catch (error) {
-      console.error('Make sure edge-tts is installed: pip install edge-tts');
-      throw error;
-    }
+    logger.info('Listing available English voices');
+
+    return new Promise((resolve, reject) => {
+      const proc = spawn('edge-tts', ['--list-voices'], {
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      proc.stdout.on('data', (data: Buffer) => {
+        stdout += data.toString();
+      });
+
+      proc.stderr.on('data', (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      proc.on('close', (code) => {
+        if (code === 0) {
+          const englishVoices = stdout
+            .split('\n')
+            .filter((line) => line.includes('en-'))
+            .join('\n');
+
+          console.log('Available English voices:\n');
+          console.log(englishVoices);
+          resolve();
+        } else {
+          logger.error({ code, stderr }, 'Failed to list voices');
+          reject(new Error('Make sure edge-tts is installed: pip install edge-tts'));
+        }
+      });
+
+      proc.on('error', (err) => {
+        logger.error({ error: err.message }, 'Edge TTS spawn error');
+        reject(new Error(`Failed to spawn edge-tts: ${err.message}. Make sure edge-tts is installed: pip install edge-tts`));
+      });
+    });
   }
 }
