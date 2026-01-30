@@ -64,7 +64,8 @@ const CONTENT_EFFECTS: Record<string, VisualEffect[]> = {
   exposition: ['pan_left', 'pan_right', 'drift', 'ken_burns_zoom_out'],
   action: ['diagonal_pan', 'ken_burns_zoom_in', 'pan_up'],
   conclusion: ['ken_burns_zoom_out', 'drift', 'static'],
-  transition_moment: ['dip_to_black', 'blur_transition']
+  transition_moment: ['static', 'drift', 'slow_zoom'],
+  generic: ['ken_burns_zoom_in', 'ken_burns_zoom_out', 'pan_left', 'pan_right', 'drift']
 };
 
 export class VisualEffectsEngine {
@@ -75,7 +76,7 @@ export class VisualEffectsEngine {
    * Select an appropriate visual effect based on content type
    */
   selectEffect(
-    contentType: 'hook' | 'reveal' | 'exposition' | 'action' | 'conclusion' | 'generic',
+    contentType: 'hook' | 'reveal' | 'exposition' | 'action' | 'conclusion' | 'transition_moment' | 'generic',
     seed?: number
   ): VisualEffect {
     const effects = CONTENT_EFFECTS[contentType] || [

@@ -1,13 +1,14 @@
 import 'dotenv/config';
-import { ScriptGenerator } from '../services/script-generator.js';
+import { ScriptGenerator, EnhancedVideoScript } from '../services/script-generator.js';
 import { VoiceGeneratorFactory } from '../services/voice-generator-factory.js';
 import { AssetCollector } from '../services/asset-collector.js';
 import { AssetDownloader } from '../services/asset-downloader.js';
-import { VideoComposer } from '../services/video-composer.js';
+import { VideoComposer, ComposeOptions } from '../services/video-composer.js';
 import { Channel, VisualRequest, VideoScript } from '../types/index.js';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { promisify } from 'util';
 import { exec } from 'child_process';
+import logger from '../utils/logger.js';
 
 const execAsync = promisify(exec);
 
@@ -117,14 +118,25 @@ export class FullVideoPipeline {
         downloadedAssets
       }));
 
-      // Step 5: Compose Video
-      console.log('🎬 STEP 5/5: Composing final video with FFmpeg...\n');
+      // Step 5: Compose Video with enhanced effects
+      console.log('🎬 STEP 5/5: Composing final video with FFmpeg (enhanced)...\n');
+      const composeOptions: ComposeOptions = {
+        channel,
+        shortVideoStrategy: 'loop',
+        enableMusic: true,
+        enableSFX: true,
+        enableVisualEffects: true,
+        enableColorGrading: true,
+        musicVolume: 0.15,
+        enhancedScript: script as EnhancedVideoScript
+      };
+
       const videoPath = await this.videoComposer.composeVideo(
         script,
         audioPath,
         downloadedAssets.filter(a => a.localPath),
         `${resolvedProjectId}.mp4`,
-        { channel, shortVideoStrategy: 'loop' }
+        composeOptions
       );
 
       await this.updateProjectManifest(metaPath, (curr) => ({
@@ -205,13 +217,24 @@ export class FullVideoPipeline {
       downloadedAssets
     }));
 
-    console.log('🎬 REGEN: Composing video...');
+    console.log('🎬 REGEN: Composing video with enhanced effects...');
+    const composeOptions: ComposeOptions = {
+      channel,
+      shortVideoStrategy: 'loop',
+      enableMusic: true,
+      enableSFX: true,
+      enableVisualEffects: true,
+      enableColorGrading: true,
+      musicVolume: 0.15,
+      enhancedScript: script as EnhancedVideoScript
+    };
+
     const videoPath = await this.videoComposer.composeVideo(
       script,
       audioPath,
       downloadedAssets.filter(a => a.localPath),
       `${projectId}.mp4`,
-      { channel, shortVideoStrategy: 'loop' }
+      composeOptions
     );
 
     await this.updateProjectManifest(metaPath, (curr) => ({
