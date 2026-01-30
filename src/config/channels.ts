@@ -43,10 +43,12 @@ export const channels: Record<string, Channel> = {
       colorGrading: 'blue-orange'
     },
     voice: {
+      provider: 'elevenlabs',
+      voiceId: 'gnPxliFHTp6OK6tcoA6i',
       language: 'en-US',
-      voice: 'en-US-GuyNeural', // Professional male voice
-      rate: '+5%',
-      pitch: '+0Hz'
+      stability: 0.5,
+      similarityBoost: 0.75,
+      style: 0.1
     }
   },
   'human-odyssey': {
@@ -91,10 +93,12 @@ export const channels: Record<string, Channel> = {
       colorGrading: 'warm-vintage'
     },
     voice: {
+      provider: 'elevenlabs',
+      voiceId: 'QIhD5ivPGEoYZQDocuHI',
       language: 'en-GB',
-      voice: 'en-GB-RyanNeural', // British narrator
-      rate: '+0%',
-      pitch: '+0Hz'
+      stability: 0.6,
+      similarityBoost: 0.8,
+      style: 0
     }
   },
   'classified-files': {
@@ -139,10 +143,12 @@ export const channels: Record<string, Channel> = {
       colorGrading: 'desaturated-cold'
     },
     voice: {
+      provider: 'elevenlabs',
+      voiceId: '2gPFXx8pN3Avh27Dw5Ma',
       language: 'en-US',
-      voice: 'en-US-ChristopherNeural', // Reliable authority voice
-      rate: '-5%',
-      pitch: '+0Hz'
+      stability: 0.4,
+      similarityBoost: 0.7,
+      style: 0.2
     }
   }
 };

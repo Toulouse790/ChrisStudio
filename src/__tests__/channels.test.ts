@@ -26,10 +26,25 @@ describe('Channel Configuration', () => {
 
     it('should have valid voice configuration', () => {
       expect(channel.voice).toBeDefined();
-      expect(channel.voice.language).toMatch(/^en-/);
-      expect(channel.voice.voice).toBeDefined();
-      expect(channel.voice.rate).toMatch(/^[+-]\d+%$/);
-      expect(channel.voice.pitch).toMatch(/^[+-]\d+Hz$/);
+      expect(channel.voice.provider).toBeDefined();
+      expect(['elevenlabs', 'edge-tts']).toContain(channel.voice.provider);
+      expect(channel.voice.voiceId).toBeDefined();
+      expect(channel.voice.voiceId.length).toBeGreaterThan(0);
+
+      if (channel.voice.provider === 'elevenlabs') {
+        if (channel.voice.stability !== undefined) {
+          expect(channel.voice.stability).toBeGreaterThanOrEqual(0);
+          expect(channel.voice.stability).toBeLessThanOrEqual(1);
+        }
+        if (channel.voice.similarityBoost !== undefined) {
+          expect(channel.voice.similarityBoost).toBeGreaterThanOrEqual(0);
+          expect(channel.voice.similarityBoost).toBeLessThanOrEqual(1);
+        }
+        if (channel.voice.style !== undefined) {
+          expect(channel.voice.style).toBeGreaterThanOrEqual(0);
+          expect(channel.voice.style).toBeLessThanOrEqual(1);
+        }
+      }
     });
 
     it('should have valid pacing configuration', () => {
@@ -91,8 +106,9 @@ describe('Channel Configuration', () => {
       expect(channels['what-if'].style.theme).toBe('sci-fi');
     });
 
-    it('should use US English voice', () => {
-      expect(channels['what-if'].voice.language).toBe('en-US');
+    it('should use ElevenLabs voice', () => {
+      expect(channels['what-if'].voice.provider).toBe('elevenlabs');
+      expect(channels['what-if'].voice.voiceId).toBe('gnPxliFHTp6OK6tcoA6i');
     });
   });
 
@@ -101,8 +117,9 @@ describe('Channel Configuration', () => {
       expect(channels['human-odyssey'].style.theme).toBe('historical');
     });
 
-    it('should use British English voice', () => {
-      expect(channels['human-odyssey'].voice.language).toBe('en-GB');
+    it('should use ElevenLabs voice', () => {
+      expect(channels['human-odyssey'].voice.provider).toBe('elevenlabs');
+      expect(channels['human-odyssey'].voice.voiceId).toBe('QIhD5ivPGEoYZQDocuHI');
     });
   });
 
@@ -111,8 +128,9 @@ describe('Channel Configuration', () => {
       expect(channels['classified-files'].style.theme).toBe('mysterious');
     });
 
-    it('should have slower speech rate', () => {
-      expect(channels['classified-files'].voice.rate).toBe('-5%');
+    it('should use ElevenLabs voice', () => {
+      expect(channels['classified-files'].voice.provider).toBe('elevenlabs');
+      expect(channels['classified-files'].voice.voiceId).toBe('2gPFXx8pN3Avh27Dw5Ma');
     });
   });
 });

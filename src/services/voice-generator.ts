@@ -1,7 +1,13 @@
 import { spawn } from 'child_process';
 import { mkdir } from 'fs/promises';
-import { VoiceConfig } from '../types/index.js';
 import logger from '../utils/logger.js';
+
+export interface EdgeTTSVoiceConfig {
+  language: string;
+  voice: string;
+  rate: string;
+  pitch: string;
+}
 
 export class VoiceGenerator {
   private outputDir: string;
@@ -12,7 +18,7 @@ export class VoiceGenerator {
 
   async generateAudio(
     text: string,
-    voiceConfig: VoiceConfig,
+    voiceConfig: EdgeTTSVoiceConfig,
     outputFile: string
   ): Promise<string> {
     await mkdir(this.outputDir, { recursive: true });

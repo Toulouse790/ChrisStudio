@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { ScriptGenerator } from '../services/script-generator.js';
-import { VoiceGenerator } from '../services/voice-generator.js';
+import { VoiceGeneratorFactory } from '../services/voice-generator-factory.js';
 import { AssetCollector } from '../services/asset-collector.js';
 import { AssetDownloader } from '../services/asset-downloader.js';
 import { VideoComposer } from '../services/video-composer.js';
@@ -13,14 +13,14 @@ const execAsync = promisify(exec);
 
 export class FullVideoPipeline {
   private scriptGenerator: ScriptGenerator;
-  private voiceGenerator: VoiceGenerator;
+  private voiceGeneratorFactory: VoiceGeneratorFactory;
   private assetCollector: AssetCollector;
   private assetDownloader: AssetDownloader;
   private videoComposer: VideoComposer;
 
   constructor() {
     this.scriptGenerator = new ScriptGenerator();
-    this.voiceGenerator = new VoiceGenerator();
+    this.voiceGeneratorFactory = new VoiceGeneratorFactory();
     this.assetCollector = new AssetCollector();
     this.assetDownloader = new AssetDownloader();
     this.videoComposer = new VideoComposer();
@@ -262,7 +262,7 @@ export class FullVideoPipeline {
       // Build narration with branding injected at safe moments.
       const narrationText = this.buildNarrationWithBranding(channel, script);
 
-      const audioPath = await this.voiceGenerator.generateAudio(
+      const audioPath = await this.voiceGeneratorFactory.generateAudio(
         narrationText,
         channel.voice,
         `${projectId}.mp3`
