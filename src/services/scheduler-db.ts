@@ -46,12 +46,18 @@ export class SchedulerDatabase {
 
   async getVideos(): Promise<ScheduledVideo[]> {
     const data = await readFile(this.dbPath, 'utf-8');
-    return JSON.parse(data).map((v: any) => ({
+    const parsed = JSON.parse(data) as Array<{
+      scheduledDate: string;
+      createdAt: string;
+      publishedAt?: string;
+      [key: string]: unknown;
+    }>;
+    return parsed.map((v) => ({
       ...v,
       scheduledDate: new Date(v.scheduledDate),
       createdAt: new Date(v.createdAt),
       publishedAt: v.publishedAt ? new Date(v.publishedAt) : undefined
-    }));
+    })) as ScheduledVideo[];
   }
 
   async saveVideos(videos: ScheduledVideo[]): Promise<void> {

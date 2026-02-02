@@ -59,10 +59,18 @@ export interface ChannelStyle {
 }
 
 export interface VoiceConfig {
-  language: string; // 'en-US', 'en-GB', etc.
-  voice: string; // Edge TTS voice name
-  rate: string; // '+0%', '+10%', etc.
-  pitch: string; // '+0Hz', '+5Hz', etc.
+  provider: 'elevenlabs' | 'edge-tts';
+  /** ElevenLabs voice ID or Edge TTS voice name */
+  voiceId: string;
+  /** Language code (for reference/fallback) */
+  language?: string;
+  /** ElevenLabs settings */
+  stability?: number;
+  similarityBoost?: number;
+  style?: number;
+  /** Edge TTS settings (legacy) */
+  rate?: string;
+  pitch?: string;
 }
 
 export interface VideoScript {

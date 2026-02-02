@@ -1,26 +1,27 @@
 import 'dotenv/config';
-import { ScriptGenerator } from '../services/script-generator.js';
-import { VoiceGenerator } from '../services/voice-generator.js';
+import { ScriptGenerator, EnhancedVideoScript } from '../services/script-generator.js';
+import { VoiceGeneratorFactory } from '../services/voice-generator-factory.js';
 import { AssetCollector } from '../services/asset-collector.js';
 import { AssetDownloader } from '../services/asset-downloader.js';
-import { VideoComposer } from '../services/video-composer.js';
+import { VideoComposer, ComposeOptions } from '../services/video-composer.js';
 import { Channel, VisualRequest, VideoScript } from '../types/index.js';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { promisify } from 'util';
 import { exec } from 'child_process';
+import logger from '../utils/logger.js';
 
 const execAsync = promisify(exec);
 
 export class FullVideoPipeline {
   private scriptGenerator: ScriptGenerator;
-  private voiceGenerator: VoiceGenerator;
+  private voiceGeneratorFactory: VoiceGeneratorFactory;
   private assetCollector: AssetCollector;
   private assetDownloader: AssetDownloader;
   private videoComposer: VideoComposer;
 
   constructor() {
     this.scriptGenerator = new ScriptGenerator();
-    this.voiceGenerator = new VoiceGenerator();
+    this.voiceGeneratorFactory = new VoiceGeneratorFactory();
     this.assetCollector = new AssetCollector();
     this.assetDownloader = new AssetDownloader();
     this.videoComposer = new VideoComposer();
@@ -117,14 +118,25 @@ export class FullVideoPipeline {
         downloadedAssets
       }));
 
-      // Step 5: Compose Video
-      console.log('🎬 STEP 5/5: Composing final video with FFmpeg...\n');
+      // Step 5: Compose Video with enhanced effects
+      console.log('🎬 STEP 5/5: Composing final video with FFmpeg (enhanced)...\n');
+      const composeOptions: ComposeOptions = {
+        channel,
+        shortVideoStrategy: 'loop',
+        enableMusic: true,
+        enableSFX: true,
+        enableVisualEffects: true,
+        enableColorGrading: true,
+        musicVolume: 0.15,
+        enhancedScript: script as EnhancedVideoScript
+      };
+
       const videoPath = await this.videoComposer.composeVideo(
         script,
         audioPath,
         downloadedAssets.filter(a => a.localPath),
         `${resolvedProjectId}.mp4`,
-        { channel, shortVideoStrategy: 'loop' }
+        composeOptions
       );
 
       await this.updateProjectManifest(metaPath, (curr) => ({
@@ -205,13 +217,24 @@ export class FullVideoPipeline {
       downloadedAssets
     }));
 
-    console.log('🎬 REGEN: Composing video...');
+    console.log('🎬 REGEN: Composing video with enhanced effects...');
+    const composeOptions: ComposeOptions = {
+      channel,
+      shortVideoStrategy: 'loop',
+      enableMusic: true,
+      enableSFX: true,
+      enableVisualEffects: true,
+      enableColorGrading: true,
+      musicVolume: 0.15,
+      enhancedScript: script as EnhancedVideoScript
+    };
+
     const videoPath = await this.videoComposer.composeVideo(
       script,
       audioPath,
       downloadedAssets.filter(a => a.localPath),
       `${projectId}.mp4`,
-      { channel, shortVideoStrategy: 'loop' }
+      composeOptions
     );
 
     await this.updateProjectManifest(metaPath, (curr) => ({
@@ -262,7 +285,7 @@ export class FullVideoPipeline {
       // Build narration with branding injected at safe moments.
       const narrationText = this.buildNarrationWithBranding(channel, script);
 
-      const audioPath = await this.voiceGenerator.generateAudio(
+      const audioPath = await this.voiceGeneratorFactory.generateAudio(
         narrationText,
         channel.voice,
         `${projectId}.mp3`
