@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎬 ChrisStudio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ChrisStudio - Génération de vidéos IA</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
@@ -11,7 +14,7 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <h1>🎬 ChrisStudio</h1>
+                <h1>ChrisStudio</h1>
             </div>
             <div class="nav-links">
                 <a href="/" class="active">Générer</a>
@@ -19,24 +22,31 @@
             </div>
         </div>
     </nav>
-    
+
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1>🎬 ChrisStudio</h1>
-            <p class="subtitle">Génération de vidéos IA pour vos chaînes</p>
+            <h1>ChrisStudio</h1>
+            <p class="subtitle">Génération automatique de vidéos documentaires</p>
         </header>
+
+        <!-- Mobile Tabs -->
+        <div class="mobile-tabs">
+            <button class="active" data-tab="generate">Générer</button>
+            <button data-tab="history">Historique</button>
+            <button data-tab="stats">Stats</button>
+        </div>
 
         <!-- Main Content -->
         <div class="main-content">
             <!-- Left Panel: Generation Form -->
-            <div class="left-panel">
-                <div class="card">
+            <div class="left-panel tab-content active" data-tab="generate">
+                <div class="card" id="generateCard">
                     <h2>Créer une nouvelle vidéo</h2>
-                    
+
                     <form id="generateForm">
                         <div class="form-group">
-                            <label for="channel">Sélectionner la chaîne</label>
+                            <label for="channel">Chaîne</label>
                             <select id="channel" name="channel" required>
                                 <option value="">Chargement des chaînes...</option>
                             </select>
@@ -45,26 +55,66 @@
 
                         <div class="form-group">
                             <label for="topic">Sujet de la vidéo</label>
-                            <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
-                                <input 
-                                    type="text" 
-                                    id="topic" 
-                                    name="topic" 
+                            <div class="topic-row">
+                                <input
+                                    type="text"
+                                    id="topic"
+                                    name="topic"
                                     placeholder="Ex: Et si les humains pouvaient respirer sous l'eau ?"
                                     required
-                                    style="flex: 1;"
                                 />
-                                <button 
-                                    type="button" 
-                                    id="generateTopicBtn" 
+                                <button
+                                    type="button"
+                                    id="generateTopicBtn"
                                     class="btn-secondary"
-                                    style="white-space: nowrap; padding: 0.75rem 1rem;"
                                     title="Générer un sujet automatiquement avec l'IA"
                                 >
-                                    ✨ Générer
+                                    ✨ IA
                                 </button>
                             </div>
-                            <small>Soyez précis et intrigant, ou laissez l'IA générer un sujet !</small>
+                            <small>Soyez précis et intrigant, ou laissez l'IA générer un sujet</small>
+                        </div>
+
+                        <!-- Thumbnail Preview -->
+                        <div class="thumbnail-preview" id="thumbnailPreview">
+                            <div class="placeholder">
+                                <span>🎬</span>
+                                <p>Aperçu de la miniature</p>
+                            </div>
+                        </div>
+
+                        <!-- Production Options -->
+                        <div class="form-group">
+                            <label>Options de production</label>
+                            <div class="production-options">
+                                <div class="toggle-option">
+                                    <input type="checkbox" id="optMusic" name="enableMusic" checked>
+                                    <label for="optMusic">🎵 Musique</label>
+                                </div>
+                                <div class="toggle-option">
+                                    <input type="checkbox" id="optSFX" name="enableSFX" checked>
+                                    <label for="optSFX">🔊 Effets sonores</label>
+                                </div>
+                                <div class="toggle-option">
+                                    <input type="checkbox" id="optEffects" name="enableVisualEffects" checked>
+                                    <label for="optEffects">✨ Effets visuels</label>
+                                </div>
+                                <div class="toggle-option">
+                                    <input type="checkbox" id="optColorGrade" name="enableColorGrading" checked>
+                                    <label for="optColorGrade">🎨 Color grading</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Batch Mode -->
+                        <div class="batch-options">
+                            <label for="batchCount">Mode batch :</label>
+                            <select id="batchCount" name="batchCount">
+                                <option value="1">1 vidéo</option>
+                                <option value="2">2 vidéos</option>
+                                <option value="3">3 vidéos</option>
+                            </select>
+                            <small style="color: var(--text-muted); margin-left: auto;">Génère plusieurs sujets différents</small>
                         </div>
 
                         <div class="form-group">
@@ -103,13 +153,13 @@
                     <div class="result-info" id="resultInfo"></div>
 
                     <div class="youtube-card" id="youtubeCard">
-                        <h3>📤 Publish to YouTube</h3>
-                        <p class="youtube-status" id="ytStatusText">Checking YouTube connection…</p>
+                        <h3>📤 Publier sur YouTube</h3>
+                        <p class="youtube-status" id="ytStatusText">Vérification de la connexion YouTube…</p>
 
                         <div class="checks-card">
-                            <h4>✅ Checks automatiques (avant upload)</h4>
+                            <h4>✅ Vérifications automatiques</h4>
                             <div id="ytChecks" class="checks-list">
-                                <p class="loading">Chargement des checks…</p>
+                                <p class="loading">Chargement des vérifications…</p>
                             </div>
                             <div id="ytFixActions" class="checks-actions"></div>
                         </div>
@@ -121,19 +171,23 @@
 
                         <div class="form-group">
                             <label for="ytDescription">Description</label>
-                            <textarea id="ytDescription" rows="6" placeholder="Description de la vidéo"></textarea>
+                            <textarea id="ytDescription" rows="5" placeholder="Description de la vidéo"></textarea>
                         </div>
 
                         <div class="form-group">
                             <label for="ytTags">Tags (séparés par des virgules)</label>
-                            <input type="text" id="ytTags" placeholder="histoire, documentaire, ancien" />
+                            <input type="text" id="ytTags" placeholder="histoire, documentaire, mystère" />
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="ytCategoryId">ID de catégorie</label>
-                                <input type="text" id="ytCategoryId" value="22" />
-                                <small>Par défaut : 22 (Personnes et blogs)</small>
+                                <label for="ytCategoryId">Catégorie</label>
+                                <select id="ytCategoryId">
+                                    <option value="22">Personnes et blogs</option>
+                                    <option value="27">Éducation</option>
+                                    <option value="28">Science et technologie</option>
+                                    <option value="24">Divertissement</option>
+                                </select>
                             </div>
 
                             <div class="form-group">
@@ -148,60 +202,68 @@
 
                         <div class="result-actions">
                             <button class="btn-secondary" id="ytConnectBtn" type="button">🔐 Connecter YouTube</button>
-                            <button class="btn-primary" id="ytPublishBtn" type="button">🚀 Publier sur YouTube</button>
+                            <button class="btn-primary" id="ytPublishBtn" type="button">🚀 Publier</button>
                         </div>
 
                         <div class="progress-bar small" id="ytProgressBar" style="display:none; margin-top: 12px;">
                             <div class="progress-fill" id="ytProgressFill"></div>
                         </div>
-                        <div class="progress-log" id="ytLog" style="margin-top: 12px; max-height: 220px;"></div>
+                        <div class="progress-log" id="ytLog" style="margin-top: 12px; max-height: 150px;"></div>
                     </div>
 
-                    <div class="result-actions">
+                    <div class="result-actions" style="margin-top: 16px;">
                         <a href="#" class="btn-secondary" id="downloadBtn" target="_blank">
-                            📥 Télécharger la vidéo
+                            📥 Télécharger
                         </a>
                         <button class="btn-secondary" id="newVideoBtn">
-                            ➕ Créer une autre
+                            ➕ Nouvelle vidéo
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Panel: History -->
+            <!-- Right Panel: History & Stats -->
             <div class="right-panel">
-                <div class="card">
+                <!-- Stats Card (visible on mobile via tab) -->
+                <div class="card stats-card tab-content" data-tab="stats">
+                    <h3>📊 Tableau de bord</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-value" id="statTotal">-</span>
+                            <span class="stat-label">Total vidéos</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="statWeek">-</span>
+                            <span class="stat-label">Cette semaine</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value">~11</span>
+                            <span class="stat-label">Min. moyenne</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="statPublished">-</span>
+                            <span class="stat-label">Publiées</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Card -->
+                <div class="card tab-content" data-tab="history">
                     <h2>Vidéos récentes</h2>
                     <div id="historyList" class="history-list">
                         <p class="loading">Chargement de l'historique...</p>
                     </div>
                 </div>
 
-                <!-- Stats Card -->
-                <div class="card stats-card">
-                    <h3>📊 Statistiques</h3>
-                    <div class="stat-item">
-                        <span class="stat-label">Total de vidéos :</span>
-                        <span class="stat-value" id="statTotal">-</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Cette semaine :</span>
-                        <span class="stat-value" id="statWeek">-</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Durée moyenne :</span>
-                        <span class="stat-value">~9 min</span>
-                    </div>
-                </div>
-
                 <!-- Info Card -->
                 <div class="card info-card">
-                    <h3>ℹ️ Infos rapides</h3>
+                    <h3>ℹ️ Informations</h3>
                     <ul>
-                        <li><strong>Coût par vidéo :</strong> ~0,10-0,20 $</li>
-                        <li><strong>Temps de génération :</strong> ~7-10 minutes</li>
-                        <li><strong>Qualité de sortie :</strong> 1080p, 30fps</li>
-                        <li><strong>Médias gratuits :</strong> Pexels + Edge TTS</li>
+                        <li><strong>Coût par vidéo :</strong> ~0,50-1,50 €</li>
+                        <li><strong>Durée cible :</strong> 10-12 minutes</li>
+                        <li><strong>Qualité :</strong> 1080p, 30fps</li>
+                        <li><strong>Voix :</strong> ElevenLabs</li>
+                        <li><strong>Médias :</strong> Pexels (gratuit)</li>
                     </ul>
                 </div>
             </div>
