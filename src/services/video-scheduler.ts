@@ -2,20 +2,24 @@ import { ScheduledVideo } from '../types/scheduler.js';
 import { SchedulerDatabase } from './scheduler-db.js';
 import { FullVideoPipeline } from '../workflows/full-video-pipeline.js';
 import { YouTubeMetadataGenerator } from './youtube-metadata-generator.js';
+import { TopicGenerator } from './topic-generator.js';
 import { channels } from '../config/channels.js';
 import { readFile } from 'fs/promises';
 import { VideoScript } from '../types/index.js';
+import logger from '../utils/logger.js';
 
 export class VideoScheduler {
   private db: SchedulerDatabase;
   private pipeline: FullVideoPipeline;
   private metadataGenerator: YouTubeMetadataGenerator;
+  private topicGenerator: TopicGenerator;
   private checkInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     this.db = new SchedulerDatabase();
     this.pipeline = new FullVideoPipeline();
     this.metadataGenerator = new YouTubeMetadataGenerator();
+    this.topicGenerator = new TopicGenerator();
   }
 
   // Start the scheduler (check every minute)
@@ -153,8 +157,21 @@ export class VideoScheduler {
           continue;
         }
         
-        // Generate topic based on channel
-        const topic = this.generateTopicIdea(schedule.channelId);
+        // Generate topic using AI
+        const channel = channels[schedule.channelId];
+        if (!channel) {
+          logger.warn({ channelId: schedule.channelId }, 'Channel not found, skipping');
+          continue;
+        }
+        
+        // Get previous topics to avoid repetition
+        const allVideos = await this.db.getVideos();
+        const previousTopics = allVideos
+          .filter(v => v.channelId === schedule.channelId)
+          .map(v => v.topic);
+        
+        const topic = await this.topicGenerator.generateTopic(channel, previousTopics);
+        logger.info({ channelId: schedule.channelId, topic, date: targetDate }, 'Auto-generated topic');
         
         // Create scheduled video
         const scheduledVideo: ScheduledVideo = {
@@ -172,42 +189,21 @@ export class VideoScheduler {
     }
   }
 
-  private generateTopicIdea(channelId: string): string {
-    const topics = {
-      'what-if': [
-        'What if humans could photosynthesize like plants?',
-        'What if we discovered alien life tomorrow?',
-        'What if time travel was invented today?',
-        'What if Earth had two moons?',
-        'What if we could read minds?',
-        'What if humans could fly naturally?',
-        'What if the Internet disappeared forever?',
-        'What if we found a cure for aging?'
-      ],
-      'human-odyssey': [
-        'The Rise and Fall of the Roman Empire',
-        'Ancient Egyptian Engineering Marvels',
-        'The Viking Age: Explorers and Warriors',
-        'The Silk Road: Connecting East and West',
-        'The Renaissance: Birth of Modern Art',
-        'The Industrial Revolution and Its Impact',
-        'The Space Race: USA vs USSR',
-        'The Age of Exploration'
-      ],
-      'classified-files': [
-        'The Mystery of the Bermuda Triangle',
-        'Area 51: What Really Happens There?',
-        'The Disappearance of Amelia Earhart',
-        'The Roswell Incident: UFO or Cover-Up?',
-        'The Voynich Manuscript Mystery',
-        'DB Cooper: The Perfect Crime?',
-        'The Tunguska Event Explained',
-        'The Lost City of Atlantis'
-      ]
-    };
+  /**
+   * Generate topic suggestions for a channel
+   */
+  async generateTopicSuggestions(channelId: string, count: number = 5) {
+    const channel = channels[channelId];
+    if (!channel) {
+      throw new Error(`Channel not found: ${channelId}`);
+    }
     
-    const channelTopics = topics[channelId as keyof typeof topics] || topics['what-if'];
-    return channelTopics[Math.floor(Math.random() * channelTopics.length)];
+    const allVideos = await this.db.getVideos();
+    const previousTopics = allVideos
+      .filter(v => v.channelId === channelId)
+      .map(v => v.topic);
+    
+    return this.topicGenerator.generateTopicSuggestions(channel, count, previousTopics);
   }
 
   // Get upcoming schedule

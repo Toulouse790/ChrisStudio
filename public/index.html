@@ -24,7 +24,7 @@
         <!-- Header -->
         <header class="header">
             <h1>🎬 ChrisStudio</h1>
-            <p class="subtitle">AI-Powered Video Generation for Your Channels</p>
+            <p class="subtitle">Génération de vidéos IA pour vos chaînes</p>
         </header>
 
         <!-- Main Content -->
@@ -32,62 +32,74 @@
             <!-- Left Panel: Generation Form -->
             <div class="left-panel">
                 <div class="card">
-                    <h2>Create New Video</h2>
+                    <h2>Créer une nouvelle vidéo</h2>
                     
                     <form id="generateForm">
                         <div class="form-group">
-                            <label for="channel">Select Channel</label>
+                            <label for="channel">Sélectionner la chaîne</label>
                             <select id="channel" name="channel" required>
-                                <option value="">Loading channels...</option>
+                                <option value="">Chargement des chaînes...</option>
                             </select>
                             <p class="channel-description" id="channelDescription"></p>
                         </div>
 
                         <div class="form-group">
-                            <label for="topic">Video Topic</label>
-                            <input 
-                                type="text" 
-                                id="topic" 
-                                name="topic" 
-                                placeholder="e.g., What if humans could breathe underwater?"
-                                required
-                            />
-                            <small>Be specific and intriguing!</small>
+                            <label for="topic">Sujet de la vidéo</label>
+                            <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                                <input 
+                                    type="text" 
+                                    id="topic" 
+                                    name="topic" 
+                                    placeholder="Ex: Et si les humains pouvaient respirer sous l'eau ?"
+                                    required
+                                    style="flex: 1;"
+                                />
+                                <button 
+                                    type="button" 
+                                    id="generateTopicBtn" 
+                                    class="btn-secondary"
+                                    style="white-space: nowrap; padding: 0.75rem 1rem;"
+                                    title="Générer un sujet automatiquement avec l'IA"
+                                >
+                                    ✨ Générer
+                                </button>
+                            </div>
+                            <small>Soyez précis et intrigant, ou laissez l'IA générer un sujet !</small>
                         </div>
 
                         <div class="form-group">
-                            <label for="mode">Generation Mode</label>
+                            <label for="mode">Mode de génération</label>
                             <select id="mode" name="mode">
-                                <option value="full">Full Video (Script + Audio + Video)</option>
-                                <option value="audio">Script + Audio Only</option>
+                                <option value="full">Vidéo complète (Script + Audio + Vidéo)</option>
+                                <option value="audio">Script + Audio uniquement</option>
                             </select>
                         </div>
 
                         <button type="submit" class="btn-primary" id="generateBtn">
-                            🚀 Generate Video
+                            🚀 Générer la vidéo
                         </button>
                     </form>
                 </div>
 
                 <!-- Progress Card -->
                 <div class="card progress-card" id="progressCard" style="display: none;">
-                    <h3>Generation Progress</h3>
+                    <h3>Progression de la génération</h3>
                     <div class="progress-bar">
                         <div class="progress-fill" id="progressFill"></div>
                     </div>
                     <div class="progress-steps" id="progressSteps">
                         <div class="step" data-step="script">📝 Script</div>
                         <div class="step" data-step="audio">🎤 Audio</div>
-                        <div class="step" data-step="assets">🎨 Assets</div>
-                        <div class="step" data-step="download">📥 Download</div>
-                        <div class="step" data-step="compose">🎬 Compose</div>
+                        <div class="step" data-step="assets">🎨 Médias</div>
+                        <div class="step" data-step="download">📥 Téléchargement</div>
+                        <div class="step" data-step="compose">🎬 Assemblage</div>
                     </div>
                     <div class="progress-log" id="progressLog"></div>
                 </div>
 
                 <!-- Result Card -->
                 <div class="card result-card" id="resultCard" style="display: none;">
-                    <h3>✅ Video Ready!</h3>
+                    <h3>✅ Vidéo prête !</h3>
                     <div class="result-info" id="resultInfo"></div>
 
                     <div class="youtube-card" id="youtubeCard">
@@ -103,40 +115,40 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="ytTitle">Title</label>
-                            <input type="text" id="ytTitle" placeholder="Video title" />
+                            <label for="ytTitle">Titre</label>
+                            <input type="text" id="ytTitle" placeholder="Titre de la vidéo" />
                         </div>
 
                         <div class="form-group">
                             <label for="ytDescription">Description</label>
-                            <textarea id="ytDescription" rows="6" placeholder="Video description"></textarea>
+                            <textarea id="ytDescription" rows="6" placeholder="Description de la vidéo"></textarea>
                         </div>
 
                         <div class="form-group">
-                            <label for="ytTags">Tags (comma-separated)</label>
-                            <input type="text" id="ytTags" placeholder="history, documentary, ancient" />
+                            <label for="ytTags">Tags (séparés par des virgules)</label>
+                            <input type="text" id="ytTags" placeholder="histoire, documentaire, ancien" />
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="ytCategoryId">Category ID</label>
+                                <label for="ytCategoryId">ID de catégorie</label>
                                 <input type="text" id="ytCategoryId" value="22" />
-                                <small>Common default: 22 (People & Blogs)</small>
+                                <small>Par défaut : 22 (Personnes et blogs)</small>
                             </div>
 
                             <div class="form-group">
-                                <label for="ytPrivacy">Privacy</label>
+                                <label for="ytPrivacy">Confidentialité</label>
                                 <select id="ytPrivacy">
-                                    <option value="unlisted" selected>Unlisted</option>
-                                    <option value="private">Private</option>
-                                    <option value="public">Public</option>
+                                    <option value="unlisted" selected>Non répertoriée</option>
+                                    <option value="private">Privée</option>
+                                    <option value="public">Publique</option>
                                 </select>
                             </div>
                         </div>
 
                         <div class="result-actions">
-                            <button class="btn-secondary" id="ytConnectBtn" type="button">🔐 Connect YouTube</button>
-                            <button class="btn-primary" id="ytPublishBtn" type="button">🚀 Publish to YouTube</button>
+                            <button class="btn-secondary" id="ytConnectBtn" type="button">🔐 Connecter YouTube</button>
+                            <button class="btn-primary" id="ytPublishBtn" type="button">🚀 Publier sur YouTube</button>
                         </div>
 
                         <div class="progress-bar small" id="ytProgressBar" style="display:none; margin-top: 12px;">
@@ -147,10 +159,10 @@
 
                     <div class="result-actions">
                         <a href="#" class="btn-secondary" id="downloadBtn" target="_blank">
-                            📥 Download Video
+                            📥 Télécharger la vidéo
                         </a>
                         <button class="btn-secondary" id="newVideoBtn">
-                            ➕ Create Another
+                            ➕ Créer une autre
                         </button>
                     </div>
                 </div>
@@ -159,37 +171,37 @@
             <!-- Right Panel: History -->
             <div class="right-panel">
                 <div class="card">
-                    <h2>Recent Videos</h2>
+                    <h2>Vidéos récentes</h2>
                     <div id="historyList" class="history-list">
-                        <p class="loading">Loading history...</p>
+                        <p class="loading">Chargement de l'historique...</p>
                     </div>
                 </div>
 
                 <!-- Stats Card -->
                 <div class="card stats-card">
-                    <h3>📊 Statistics</h3>
+                    <h3>📊 Statistiques</h3>
                     <div class="stat-item">
-                        <span class="stat-label">Total Videos:</span>
+                        <span class="stat-label">Total de vidéos :</span>
                         <span class="stat-value" id="statTotal">-</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">This Week:</span>
+                        <span class="stat-label">Cette semaine :</span>
                         <span class="stat-value" id="statWeek">-</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">Avg. Duration:</span>
+                        <span class="stat-label">Durée moyenne :</span>
                         <span class="stat-value">~9 min</span>
                     </div>
                 </div>
 
                 <!-- Info Card -->
                 <div class="card info-card">
-                    <h3>ℹ️ Quick Info</h3>
+                    <h3>ℹ️ Infos rapides</h3>
                     <ul>
-                        <li><strong>Cost per video:</strong> ~$0.10-0.20</li>
-                        <li><strong>Generation time:</strong> ~7-10 minutes</li>
-                        <li><strong>Output quality:</strong> 1080p, 30fps</li>
-                        <li><strong>Free assets:</strong> Pexels + Edge TTS</li>
+                        <li><strong>Coût par vidéo :</strong> ~0,10-0,20 $</li>
+                        <li><strong>Temps de génération :</strong> ~7-10 minutes</li>
+                        <li><strong>Qualité de sortie :</strong> 1080p, 30fps</li>
+                        <li><strong>Médias gratuits :</strong> Pexels + Edge TTS</li>
                     </ul>
                 </div>
             </div>

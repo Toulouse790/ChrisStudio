@@ -97,8 +97,10 @@ export class ScriptGenerator {
   private client: OpenAI;
 
   constructor() {
+    const apiKey = process.env.OPENAI_API_KEY || 'dummy-key-for-testing';
     this.client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+      apiKey,
+      dangerouslyAllowBrowser: false
     });
   }
 

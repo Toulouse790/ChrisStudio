@@ -269,6 +269,25 @@ app.post('/api/schedule', authMiddleware, validateBody(scheduleVideoSchema), asy
   }
 });
 
+// Generate topic suggestions for a channel
+app.get('/api/topics/:channelId', optionalAuthMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const channelIdParam = req.params.channelId;
+    const channelId = typeof channelIdParam === 'string' ? channelIdParam : channelIdParam[0];
+    const countParam = req.query.count;
+    const count = countParam && typeof countParam === 'string' ? parseInt(countParam) : 5;
+    
+    logger.info({ channelId, count, user: req.user?.username }, 'Generating topic suggestions');
+    const suggestions = await scheduler.generateTopicSuggestions(channelId, count);
+    
+    res.json({ suggestions });
+  } catch (error: unknown) {
+    const err = error as Error;
+    logger.error({ error: err.message }, 'Failed to generate topics');
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/api/schedule/:id', authMiddleware, validateParams(idParamSchema), async (req: AuthRequest, res) => {
   try {
     const id = String(req.params.id);

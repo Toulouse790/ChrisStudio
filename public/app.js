@@ -5,6 +5,7 @@ const socket = io();
 const generateForm = document.getElementById('generateForm');
 const channelSelect = document.getElementById('channel');
 const topicInput = document.getElementById('topic');
+const generateTopicBtn = document.getElementById('generateTopicBtn');
 const channelDescription = document.getElementById('channelDescription');
 const generateBtn = document.getElementById('generateBtn');
 const progressCard = document.getElementById('progressCard');
@@ -71,13 +72,71 @@ channelSelect.addEventListener('change', (e) => {
         channelDescription.style.display = 'block';
         
         // Update placeholder based on channel
-        const examples = {
-            'what-if': 'e.g., What if humans could breathe underwater?',
-            'human-odyssey': 'e.g., The rise and fall of the Roman Empire',
-            'classified-files': 'e.g., The mystery of the Bermuda Triangle'
+        const examples =Ex: Et si les humains pouvaient respirer sous l\'eau ?',
+            'human-odyssey': 'Ex: L\'essor et la chute de l\'Empire romain',
+            'classified-files': 'Ex: Le mystère du Triangle des Bermudes'
         };
-        topicInput.placeholder = examples[selected.value] || 'Enter your video topic...';
+        topicInput.placeholder = examples[selected.value] || 'Entrez le sujet de votre vidéo...';
     } else {
+        channelDescription.style.display = 'none';
+    }
+});
+
+// Generate topic automatically using AI
+generateTopicBtn.addEventListener('click', async () => {
+    const channelId = channelSelect.value;
+    
+    if (!channelId) {
+        alert('Veuillez d\'abord sélectionner une chaîne');
+        return;
+    }
+    
+    // Disable button and show loading
+    generateTopicBtn.disabled = true;
+    generateTopicBtn.innerHTML = '⏳ Génération...';
+    topicInput.disabled = true;
+    
+    try {
+        const response = await fetch(`/api/topics/${channelId}?count=1`);
+        if (!response.ok) throw new Error('Failed to generate topic');
+        
+        const data = await response.json();
+        if (data.suggestions && data.suggestions.length > 0) {
+            topicInput.value = data.suggestions[0].topic;
+            
+            // Show a nice notification
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 9999;
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.5rem;">✨</span>
+                    <div>
+                        <div style="font-weight: 600;">Sujet généré !</div>
+                        <div style="font-size: 0.875rem; opacity: 0.9;">Score viral: ${data.suggestions[0].viralScore}/10</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+    } catch (error) {
+        console.error('Error generating topic:', error);
+        alert('Erreur lors de la génération du sujet. Veuillez réessayer.');
+    } finally {
+        generateTopicBtn.disabled = false;
+        generateTopicBtn.innerHTML = '✨ Générer';
+        topicInput.disabled = false
         channelDescription.style.display = 'none';
     }
 });
