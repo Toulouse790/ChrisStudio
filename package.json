@@ -52,7 +52,6 @@
     "@types/fluent-ffmpeg": "^2.1.27",
     "@types/jsonwebtoken": "^9.0.10",
     "vitest": "^2.1.8",
-    "@vitest/coverage-v8": "^0.1.0",
     "@types/node": "^22.10.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
