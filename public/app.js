@@ -18,6 +18,16 @@ const newVideoBtn = document.getElementById('newVideoBtn');
 const historyList = document.getElementById('historyList');
 const statTotal = document.getElementById('statTotal');
 const statWeek = document.getElementById('statWeek');
+const statPublished = document.getElementById('statPublished');
+const generateCard = document.getElementById('generateCard');
+const thumbnailPreview = document.getElementById('thumbnailPreview');
+
+// Production options
+const optMusic = document.getElementById('optMusic');
+const optSFX = document.getElementById('optSFX');
+const optEffects = document.getElementById('optEffects');
+const optColorGrade = document.getElementById('optColorGrade');
+const batchCount = document.getElementById('batchCount');
 
 // YouTube publish UI
 const ytStatusText = document.getElementById('ytStatusText');
@@ -43,149 +53,223 @@ let activeFixJobId = null;
 let lastGenerationChannelId = null;
 let lastGenerationTopic = null;
 
+// Channel placeholder examples
+const CHANNEL_EXAMPLES = {
+    'what-if': 'Ex: Et si les humains pouvaient respirer sous l\'eau ?',
+    'human-odyssey': 'Ex: L\'essor et la chute de l\'Empire romain',
+    'classified-files': 'Ex: Le mystère du Triangle des Bermudes'
+};
+
+// Mobile tabs handling
+document.querySelectorAll('.mobile-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+
+        // Update buttons
+        document.querySelectorAll('.mobile-tabs button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Update content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            if (content.dataset.tab === tab) {
+                content.classList.add('active');
+            } else {
+                content.classList.remove('active');
+            }
+        });
+    });
+});
+
 // Load channels
 async function loadChannels() {
     try {
         const response = await fetch('/api/channels');
         const channels = await response.json();
-        
-        channelSelect.innerHTML = '<option value="">-- Select a channel --</option>';
+
+        channelSelect.innerHTML = '<option value="">-- Sélectionner une chaîne --</option>';
         channels.forEach(channel => {
             const option = document.createElement('option');
             option.value = channel.id;
-            option.textContent = `${channel.name}`;
+            option.textContent = channel.name;
             option.dataset.description = channel.description;
             option.dataset.theme = channel.theme;
             channelSelect.appendChild(option);
         });
     } catch (error) {
-        console.error('Failed to load channels:', error);
-        channelSelect.innerHTML = '<option value="">Error loading channels</option>';
+        console.error('Erreur de chargement des chaînes:', error);
+        channelSelect.innerHTML = '<option value="">Erreur de chargement</option>';
     }
 }
 
-// Update channel description
+// Update channel description and theme
 channelSelect.addEventListener('change', (e) => {
     const selected = e.target.selectedOptions[0];
     if (selected && selected.dataset.description) {
         channelDescription.textContent = `📺 ${selected.dataset.description}`;
         channelDescription.style.display = 'block';
-        
+
         // Update placeholder based on channel
-        const examples =Ex: Et si les humains pouvaient respirer sous l\'eau ?',
-            'human-odyssey': 'Ex: L\'essor et la chute de l\'Empire romain',
-            'classified-files': 'Ex: Le mystère du Triangle des Bermudes'
-        };
-        topicInput.placeholder = examples[selected.value] || 'Entrez le sujet de votre vidéo...';
+        topicInput.placeholder = CHANNEL_EXAMPLES[selected.value] || 'Entrez le sujet de votre vidéo...';
+
+        // Update card theme
+        generateCard.dataset.channel = selected.value;
+
+        // Update thumbnail preview with channel theme
+        updateThumbnailPreview(selected.value);
     } else {
         channelDescription.style.display = 'none';
+        delete generateCard.dataset.channel;
     }
 });
+
+// Update thumbnail preview
+function updateThumbnailPreview(channelId) {
+    const themes = {
+        'what-if': { icon: '🚀', text: 'Science & Spéculation', color: 'var(--what-if)' },
+        'human-odyssey': { icon: '🏛️', text: 'Histoire & Civilisations', color: 'var(--human-odyssey)' },
+        'classified-files': { icon: '🔍', text: 'Mystères & Enquêtes', color: 'var(--classified-files)' }
+    };
+
+    const theme = themes[channelId] || { icon: '🎬', text: 'Aperçu', color: 'var(--primary)' };
+
+    thumbnailPreview.innerHTML = `
+        <div class="placeholder" style="border-color: ${theme.color}">
+            <span>${theme.icon}</span>
+            <p>${theme.text}</p>
+        </div>
+    `;
+    thumbnailPreview.style.borderColor = theme.color;
+}
 
 // Generate topic automatically using AI
 generateTopicBtn.addEventListener('click', async () => {
     const channelId = channelSelect.value;
-    
+
     if (!channelId) {
-        alert('Veuillez d\'abord sélectionner une chaîne');
+        showToast('Veuillez d\'abord sélectionner une chaîne', 'error');
         return;
     }
-    
+
     // Disable button and show loading
     generateTopicBtn.disabled = true;
-    generateTopicBtn.innerHTML = '⏳ Génération...';
+    generateTopicBtn.innerHTML = '⏳';
     topicInput.disabled = true;
-    
+
     try {
         const response = await fetch(`/api/topics/${channelId}?count=1`);
-        if (!response.ok) throw new Error('Failed to generate topic');
-        
+        if (!response.ok) throw new Error('Échec de la génération');
+
         const data = await response.json();
         if (data.suggestions && data.suggestions.length > 0) {
             topicInput.value = data.suggestions[0].topic;
-            
-            // Show a nice notification
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 1rem 1.5rem;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                z-index: 9999;
-                animation: slideIn 0.3s ease-out;
-            `;
-            notification.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="font-size: 1.5rem;">✨</span>
-                    <div>
-                        <div style="font-weight: 600;">Sujet généré !</div>
-                        <div style="font-size: 0.875rem; opacity: 0.9;">Score viral: ${data.suggestions[0].viralScore}/10</div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(notification);
-            setTimeout(() => notification.remove(), 3000);
+            showToast(`Sujet généré ! Score viral: ${data.suggestions[0].viralScore}/10`, 'success');
         }
     } catch (error) {
-        console.error('Error generating topic:', error);
-        alert('Erreur lors de la génération du sujet. Veuillez réessayer.');
+        console.error('Erreur génération sujet:', error);
+        showToast('Erreur lors de la génération du sujet', 'error');
     } finally {
         generateTopicBtn.disabled = false;
-        generateTopicBtn.innerHTML = '✨ Générer';
-        topicInput.disabled = false
-        channelDescription.style.display = 'none';
+        generateTopicBtn.innerHTML = '✨ IA';
+        topicInput.disabled = false;
     }
 });
+
+// Show toast notification
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.25rem;">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+            <div>${message}</div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+}
+
+// Request notification permission
+async function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+    }
+}
+
+// Send push notification
+function sendNotification(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, {
+            body,
+            icon: '/favicon.ico',
+            badge: '/favicon.ico'
+        });
+    }
+}
 
 // Handle form submission
 generateForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const channelId = channelSelect.value;
     const topic = topicInput.value.trim();
     const mode = document.getElementById('mode').value;
-    
+    const batch = parseInt(batchCount.value) || 1;
+
     if (!channelId || !topic) {
-        alert('Please select a channel and enter a topic');
+        showToast('Veuillez sélectionner une chaîne et entrer un sujet', 'error');
         return;
     }
-    
+
+    // Get production options
+    const productionOptions = {
+        enableMusic: optMusic?.checked ?? true,
+        enableSFX: optSFX?.checked ?? true,
+        enableVisualEffects: optEffects?.checked ?? true,
+        enableColorGrading: optColorGrade?.checked ?? true
+    };
+
     // Disable form
     generateBtn.disabled = true;
-    generateBtn.textContent = '⏳ Starting...';
-    
+    generateBtn.textContent = '⏳ Démarrage...';
+
     // Show progress card
     progressCard.style.display = 'block';
     resultCard.style.display = 'none';
     progressLog.innerHTML = '';
     updateProgressSteps('script', 'active');
-    
+
     try {
         lastGenerationChannelId = channelId;
         lastGenerationTopic = topic;
+
         const response = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ channelId, topic, mode })
+            body: JSON.stringify({
+                channelId,
+                topic,
+                mode,
+                batchCount: batch,
+                ...productionOptions
+            })
         });
-        
+
         const data = await response.json();
         currentJobId = data.jobId;
-        
+
         // Subscribe to job updates
         socket.emit('subscribe', currentJobId);
-        
-        addLog(`🚀 Generation started (Job ID: ${currentJobId})`);
-        addLog(`📺 Channel: ${channelSelect.selectedOptions[0].textContent}`);
-        addLog(`📝 Topic: ${topic}`);
-        
+
+        addLog(`🚀 Génération lancée (Job: ${currentJobId})`);
+        addLog(`📺 Chaîne: ${channelSelect.selectedOptions[0].textContent}`);
+        addLog(`📝 Sujet: ${topic}`);
+        if (batch > 1) {
+            addLog(`📦 Mode batch: ${batch} vidéos`);
+        }
+
     } catch (error) {
-        console.error('Generation failed:', error);
-        addLog(`❌ Error: ${error.message}`, 'error');
+        console.error('Échec de la génération:', error);
+        addLog(`❌ Erreur: ${error.message}`, 'error');
         resetForm();
     }
 });
@@ -198,25 +282,25 @@ socket.on('progress', (data) => {
     if (activeFixJobId) {
         ytAddLog(data.message);
     }
-    
+
     // Update progress based on keywords
     const msg = data.message.toLowerCase();
     if (msg.includes('script')) {
         updateProgressSteps('script', 'active');
         updateProgress(20);
-    } else if (msg.includes('audio') || msg.includes('voice')) {
+    } else if (msg.includes('audio') || msg.includes('voice') || msg.includes('elevenlabs')) {
         updateProgressSteps('script', 'completed');
         updateProgressSteps('audio', 'active');
         updateProgress(40);
-    } else if (msg.includes('collecting') || msg.includes('assets')) {
+    } else if (msg.includes('collecting') || msg.includes('assets') || msg.includes('pexels')) {
         updateProgressSteps('audio', 'completed');
         updateProgressSteps('assets', 'active');
         updateProgress(60);
-    } else if (msg.includes('download')) {
+    } else if (msg.includes('download') || msg.includes('télécharg')) {
         updateProgressSteps('assets', 'completed');
         updateProgressSteps('download', 'active');
         updateProgress(75);
-    } else if (msg.includes('compos') || msg.includes('ffmpeg')) {
+    } else if (msg.includes('compos') || msg.includes('ffmpeg') || msg.includes('assembl')) {
         updateProgressSteps('download', 'completed');
         updateProgressSteps('compose', 'active');
         updateProgress(90);
@@ -224,32 +308,37 @@ socket.on('progress', (data) => {
 });
 
 socket.on('complete', (data) => {
-    addLog('✅ Video generation complete!', 'success');
+    addLog('✅ Génération terminée !', 'success');
     updateProgressSteps('compose', 'completed');
     updateProgress(100);
-    
+
+    // Send notification
+    sendNotification('ChrisStudio', 'Votre vidéo est prête !');
+
     setTimeout(() => {
         progressCard.style.display = 'none';
         showResult(data);
         resetForm();
         loadHistory();
-    }, 2000);
+    }, 1500);
 });
 
 socket.on('error', (data) => {
-    addLog(`❌ Error: ${data.error}`, 'error');
+    addLog(`❌ Erreur: ${data.error}`, 'error');
+    sendNotification('ChrisStudio', 'Erreur lors de la génération');
+
     if (activeFixJobId) {
-        ytAddLog(`❌ Fix failed: ${data.error}`, 'error');
+        ytAddLog(`❌ Correction échouée: ${data.error}`, 'error');
         activeFixJobId = null;
         runPrepublishChecks();
     }
     resetForm();
 });
 
-// YouTube socket handlers (only received when subscribed to yt-{publishJobId})
+// YouTube socket handlers
 socket.on('yt:status', (data) => {
     if (!currentPublishJobId) return;
-    const status = data.status || 'uploading';
+    const status = data.status || 'upload en cours';
     const progress = Number.isFinite(data.progress) ? data.progress : 0;
     ytProgressBar.style.display = 'block';
     ytProgressFill.style.width = `${Math.max(0, Math.min(100, progress))}%`;
@@ -260,26 +349,22 @@ socket.on('yt:done', (data) => {
     if (!currentPublishJobId) return;
     ytProgressBar.style.display = 'block';
     ytProgressFill.style.width = '100%';
-    ytAddLog(`✅ Published! Video ID: ${data.videoId}`, 'success');
+    ytAddLog(`✅ Publiée ! ID: ${data.videoId}`, 'success');
     if (data.videoUrl) {
         ytAddLog(`🔗 ${data.videoUrl}`, 'success');
     }
-    if (data.warning) {
-        ytAddLog(`⚠️  ${data.warning}`, 'error');
-    }
-    if (data.appliedPrivacyStatus) {
-        ytAddLog(`ℹ️  Applied privacy: ${data.appliedPrivacyStatus}`);
-    }
+    sendNotification('ChrisStudio', 'Vidéo publiée sur YouTube !');
     currentPublishJobId = null;
     ytPublishBtn.disabled = false;
     refreshYouTubeStatus();
+    loadHistory();
 });
 
 socket.on('yt:error', (data) => {
     if (!currentPublishJobId) return;
-    const msg = data.error || 'Upload failed';
+    const msg = data.error || 'Échec de l\'upload';
     if (msg === 'AUTH_REQUIRED') {
-        ytAddLog('🔐 YouTube auth required. Click “Connect YouTube” first.', 'error');
+        ytAddLog('🔐 Authentification YouTube requise. Cliquez sur "Connecter YouTube".', 'error');
         ytConnected = false;
         refreshYouTubeStatus();
     } else {
@@ -314,13 +399,12 @@ function updateProgressSteps(step, status) {
 function showResult(data) {
     resultCard.style.display = 'block';
     resultInfo.innerHTML = `
-        <p><strong>🎬 Video Path:</strong> ${data.videoPath}</p>
-        <p><strong>⏱️ Generation Time:</strong> ~7-10 minutes</p>
-        <p><strong>📊 Quality:</strong> 1080p, 30fps</p>
+        <p><strong>🎬 Fichier :</strong> ${data.videoPath?.split('/').pop() || 'video.mp4'}</p>
+        <p><strong>📊 Qualité :</strong> 1080p, 30fps</p>
     `;
-    
+
     // Extract filename from path for download API
-    const filename = data.videoPath.split('/').pop();
+    const filename = data.videoPath?.split('/').pop() || 'video.mp4';
     downloadBtn.href = `/api/download/video/${filename}`;
     downloadBtn.download = filename;
 
@@ -337,7 +421,7 @@ function showResult(data) {
 
     // Reset checks UI
     if (ytChecks) {
-        ytChecks.innerHTML = '<p class="loading">Chargement des checks…</p>';
+        ytChecks.innerHTML = '<p class="loading">Chargement des vérifications…</p>';
     }
     if (ytFixActions) {
         ytFixActions.innerHTML = '';
@@ -352,7 +436,7 @@ function showResult(data) {
 
 function resetForm() {
     generateBtn.disabled = false;
-    generateBtn.textContent = '🚀 Generate Video';
+    generateBtn.textContent = '🚀 Générer la vidéo';
     currentJobId = null;
 }
 
@@ -371,10 +455,9 @@ async function refreshYouTubeStatus() {
         const resp = await fetch('/api/youtube/status');
         const status = await resp.json();
 
-        // status: { hasCredentials, connected, tokensPath }
         if (!status.hasCredentials) {
             ytConnected = false;
-            ytStatusText.textContent = 'YouTube not configured. Add OAuth client JSON at ./secrets/youtube_oauth_client.json';
+            ytStatusText.textContent = 'YouTube non configuré. Ajoutez les identifiants OAuth.';
             ytConnectBtn.disabled = true;
             ytPublishBtn.disabled = true;
             return;
@@ -382,21 +465,19 @@ async function refreshYouTubeStatus() {
 
         ytConnected = !!status.connected;
         if (ytConnected) {
-            ytStatusText.textContent = '✅ YouTube connected. Ready to publish.';
+            ytStatusText.textContent = '✅ YouTube connecté. Prêt à publier.';
             ytConnectBtn.disabled = false;
-            ytConnectBtn.textContent = '🔄 Reconnect YouTube';
-            // Publish button is gated by prepublish checks too.
-            // runPrepublishChecks() will set the final enabled/disabled state.
+            ytConnectBtn.textContent = '🔄 Reconnecter';
             ytPublishBtn.disabled = !currentVideoPath;
         } else {
-            ytStatusText.textContent = '🔐 Not connected to YouTube yet.';
+            ytStatusText.textContent = '🔐 Non connecté à YouTube.';
             ytConnectBtn.disabled = false;
-            ytConnectBtn.textContent = '🔐 Connect YouTube';
+            ytConnectBtn.textContent = '🔐 Connecter YouTube';
             ytPublishBtn.disabled = true;
         }
     } catch (e) {
         ytConnected = false;
-        ytStatusText.textContent = '⚠️ Failed to check YouTube status.';
+        ytStatusText.textContent = '⚠️ Impossible de vérifier YouTube.';
         ytConnectBtn.disabled = false;
         ytPublishBtn.disabled = true;
     }
@@ -430,9 +511,9 @@ function renderPrepublishChecks(report) {
         `;
     }).join('');
 
-    ytChecks.innerHTML = items || '<p class="loading">Aucun check</p>';
+    ytChecks.innerHTML = items || '<p class="loading">Aucune vérification</p>';
 
-    // Actions: show only for failing checks (dedup by kind)
+    // Actions: show only for failing checks
     if (ytFixActions) {
         const actions = [];
         (report?.checks || []).forEach(c => {
@@ -451,7 +532,7 @@ function renderPrepublishChecks(report) {
         Array.from(dedup.values()).forEach(a => {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'btn-secondary';
+            btn.className = 'btn-secondary btn-small';
             btn.textContent = a.label;
             btn.addEventListener('click', () => handleFixAction(a));
             ytFixActions.appendChild(btn);
@@ -477,11 +558,11 @@ async function runPrepublishChecks() {
         });
         const data = await resp.json();
         if (!resp.ok) {
-            throw new Error(data.error || 'Validation failed');
+            throw new Error(data.error || 'Validation échouée');
         }
         renderPrepublishChecks(data);
     } catch (e) {
-        ytChecks.innerHTML = `<p style="color: var(--error);">❌ Checks failed: ${escapeHtml(e.message || e)}</p>`;
+        ytChecks.innerHTML = `<p style="color: var(--error);">❌ Échec: ${escapeHtml(e.message || e)}</p>`;
         if (ytPublishBtn) ytPublishBtn.disabled = true;
     }
 }
@@ -491,11 +572,10 @@ async function handleFixAction(action) {
 
     if (action.kind === 'regen_full') {
         if (!lastGenerationChannelId || !lastGenerationTopic) {
-            ytAddLog('❌ Impossible de relancer: channel/topic inconnus.', 'error');
+            ytAddLog('❌ Impossible de relancer: chaîne/sujet inconnus.', 'error');
             return;
         }
-        ytAddLog('🔁 Relance génération complète (plus long) — nouveau projet.', 'info');
-        // Trigger full generation again using the main form logic
+        ytAddLog('🔁 Relance génération complète…');
         channelSelect.value = lastGenerationChannelId;
         topicInput.value = lastGenerationTopic;
         generateForm.dispatchEvent(new Event('submit', { cancelable: true }));
@@ -507,7 +587,7 @@ async function handleFixAction(action) {
     const minClips = action.kind === 'regen_assets_more_clips' ? (payload.minClips || 10) : undefined;
 
     try {
-        ytAddLog('🔧 Démarrage correction: regeneration assets…');
+        ytAddLog('🔧 Correction en cours…');
         ytPublishBtn.disabled = true;
         activeFixJobId = '__starting__';
 
@@ -522,12 +602,12 @@ async function handleFixAction(action) {
         });
         const data = await resp.json();
         if (!resp.ok) {
-            throw new Error(data.error || 'Regeneration failed');
+            throw new Error(data.error || 'Régénération échouée');
         }
 
         activeFixJobId = data.jobId;
         socket.emit('subscribe', activeFixJobId);
-        ytAddLog(`📡 Fix job started: ${activeFixJobId}`);
+        ytAddLog(`📡 Correction lancée: ${activeFixJobId}`);
     } catch (e) {
         activeFixJobId = null;
         ytAddLog(`❌ ${e.message || e}`, 'error');
@@ -560,36 +640,36 @@ function escapeHtml(str) {
 
 ytConnectBtn.addEventListener('click', async () => {
     try {
-        ytAddLog('🔐 Starting YouTube OAuth…');
+        ytAddLog('🔐 Démarrage OAuth YouTube…');
         const resp = await fetch('/api/youtube/connect');
         const data = await resp.json();
         if (!data.url) {
-            ytAddLog('❌ Failed to get OAuth URL.', 'error');
+            ytAddLog('❌ Impossible d\'obtenir l\'URL OAuth.', 'error');
             return;
         }
 
-        ytAddLog('➡️ Opening Google consent screen…');
+        ytAddLog('➡️ Ouverture de la page de consentement Google…');
         window.open(data.url, '_blank');
-        ytAddLog('After approving, come back here and click Publish.');
+        ytAddLog('Après autorisation, revenez ici et cliquez sur Publier.');
 
-        // Poll status for a bit (user may complete auth quickly)
+        // Poll status
         for (let i = 0; i < 10; i++) {
             await new Promise(r => setTimeout(r, 1200));
             await refreshYouTubeStatus();
             if (ytConnected) break;
         }
     } catch (e) {
-        ytAddLog(`❌ OAuth start failed: ${e.message || e}`, 'error');
+        ytAddLog(`❌ Échec OAuth: ${e.message || e}`, 'error');
     }
 });
 
 ytPublishBtn.addEventListener('click', async () => {
     if (!currentVideoPath) {
-        ytAddLog('❌ No MP4 available to publish.', 'error');
+        ytAddLog('❌ Aucune vidéo à publier.', 'error');
         return;
     }
     if (!ytConnected) {
-        ytAddLog('🔐 Please connect YouTube first.', 'error');
+        ytAddLog('🔐 Veuillez d\'abord connecter YouTube.', 'error');
         return;
     }
 
@@ -605,14 +685,14 @@ ytPublishBtn.addEventListener('click', async () => {
     const privacyStatus = ytPrivacy.value;
 
     if (!title) {
-        ytAddLog('❌ Title is required.', 'error');
+        ytAddLog('❌ Le titre est requis.', 'error');
         return;
     }
 
     ytPublishBtn.disabled = true;
     ytProgressBar.style.display = 'block';
     ytProgressFill.style.width = '0%';
-    ytAddLog('🚀 Starting upload…');
+    ytAddLog('🚀 Démarrage de l\'upload…');
 
     try {
         const resp = await fetch('/api/youtube/publish', {
@@ -625,17 +705,16 @@ ytPublishBtn.addEventListener('click', async () => {
         });
         const data = await resp.json();
         if (!resp.ok) {
-            // If server refused due to prepublish checks, render them.
             if (data && data.report && data.report.checks) {
                 renderPrepublishChecks(data.report);
-                ytAddLog('⛔ Publication bloquée: checks pré-upload en échec.', 'error');
+                ytAddLog('⛔ Publication bloquée: vérifications en échec.', 'error');
             }
-            throw new Error(data.error || 'Publish failed');
+            throw new Error(data.error || 'Échec de la publication');
         }
 
         currentPublishJobId = data.publishJobId;
         socket.emit('subscribe-youtube', currentPublishJobId);
-        ytAddLog(`📡 Upload job started: ${currentPublishJobId}`);
+        ytAddLog(`📡 Upload lancé: ${currentPublishJobId}`);
     } catch (e) {
         ytAddLog(`❌ ${e.message || e}`, 'error');
         ytPublishBtn.disabled = false;
@@ -654,18 +733,16 @@ function ytAddLog(message, type = 'info') {
 
 async function prefillYouTubeMetadata(data) {
     try {
-        // Prefer provided scriptPath from server; else derive from video path.
         const scriptUrl = data.scriptPath || (data.videoPath
             .replace('/output/videos/', '/output/scripts/')
             .replace(/\.mp4$/i, '.json'));
 
         const resp = await fetch(scriptUrl);
-        if (!resp.ok) throw new Error('No script JSON');
+        if (!resp.ok) throw new Error('Pas de script JSON');
         const script = await resp.json();
 
         if (script?.title) ytTitle.value = script.title;
 
-        // Default description: keep it simple and editable.
         const descParts = [];
         if (script?.hook) descParts.push(script.hook);
         if (script?.conclusion) descParts.push('\n\n' + script.conclusion);
@@ -675,19 +752,18 @@ async function prefillYouTubeMetadata(data) {
         const tags = deriveTags(tagText).slice(0, 25);
         ytTags.value = tags.join(', ');
     } catch {
-        // Fallback defaults
-        if (!ytTitle.value) ytTitle.value = 'New Video';
+        if (!ytTitle.value) ytTitle.value = 'Nouvelle vidéo';
         if (!ytDescription.value) ytDescription.value = '';
         if (!ytTags.value) ytTags.value = '';
     }
 }
 
 function deriveTags(text) {
-    const stop = new Set(['the','and','for','with','this','that','from','into','over','under','about','your','you','are','was','were','has','have','had','will','its','our','their','they','them','his','her','she','him','who','what','when','where','why','how','not','yes','more','most','less','many','much','new','old']);
+    const stop = new Set(['the', 'and', 'for', 'with', 'this', 'that', 'from', 'into', 'over', 'under', 'about', 'your', 'you', 'are', 'was', 'were', 'has', 'have', 'had', 'will', 'its', 'our', 'their', 'they', 'them', 'his', 'her', 'she', 'him', 'who', 'what', 'when', 'where', 'why', 'how', 'not', 'yes', 'more', 'most', 'less', 'many', 'much', 'new', 'old', 'les', 'des', 'une', 'est', 'que', 'pour', 'dans', 'sur', 'par', 'avec', 'sont', 'plus', 'cette', 'ces']);
     return Array.from(new Set(
         (text || '')
             .toLowerCase()
-            .replace(/[^a-z0-9\s]+/g, ' ')
+            .replace(/[^a-z0-9àâäéèêëïîôùûü\s]+/g, ' ')
             .split(/\s+/g)
             .map(s => s.trim())
             .filter(Boolean)
@@ -701,44 +777,47 @@ async function loadHistory() {
     try {
         const response = await fetch('/api/history');
         const history = await response.json();
-        
+
         if (history.length === 0) {
-            historyList.innerHTML = '<p class="loading">No videos generated yet</p>';
+            historyList.innerHTML = '<p class="loading">Aucune vidéo générée</p>';
             statTotal.textContent = '0';
             statWeek.textContent = '0';
+            if (statPublished) statPublished.textContent = '0';
             return;
         }
-        
+
         // Update stats
         statTotal.textContent = history.length;
         const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
         statWeek.textContent = history.filter(h => h.timestamp > weekAgo).length;
-        
+        if (statPublished) {
+            statPublished.textContent = history.filter(h => h.published).length || '0';
+        }
+
         // Render history
         historyList.innerHTML = history.slice(0, 10).map(item => {
             const date = new Date(item.timestamp);
             const channelClass = `badge-${item.channel}`;
-            
+
             return `
-                <div class="history-item">
-                    <h4>${item.title}</h4>
+                <div class="history-item" data-channel="${item.channel}">
+                    <h4>${escapeHtml(item.title)}</h4>
                     <div class="history-meta">
                         <span class="history-badge ${channelClass}">${item.channel}</span>
-                        <span>📅 ${date.toLocaleDateString()}</span>
-                        <span>🕐 ${date.toLocaleTimeString()}</span>
+                        <span>📅 ${date.toLocaleDateString('fr-FR')}</span>
                     </div>
                     <div class="history-actions">
-                        ${item.hasVideo ? `<a href="/api/download/video/${item.videoPath.split('/').pop()}" download class="action-link">🎬 Video</a>` : ''}
+                        ${item.hasVideo ? `<a href="/api/download/video/${item.videoPath.split('/').pop()}" download class="action-link">🎬 Vidéo</a>` : ''}
                         ${item.hasAudio ? `<a href="${item.audioPath}" target="_blank" class="action-link">🎵 Audio</a>` : ''}
                         <a href="${item.scriptPath}" target="_blank" class="action-link">📄 Script</a>
                     </div>
                 </div>
             `;
         }).join('');
-        
+
     } catch (error) {
-        console.error('Failed to load history:', error);
-        historyList.innerHTML = '<p class="loading">Error loading history</p>';
+        console.error('Erreur chargement historique:', error);
+        historyList.innerHTML = '<p class="loading">Erreur de chargement</p>';
     }
 }
 
@@ -747,7 +826,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadChannels();
     loadHistory();
     refreshYouTubeStatus();
-    
+    requestNotificationPermission();
+
     // Refresh history every 30 seconds
     setInterval(loadHistory, 30000);
 });
