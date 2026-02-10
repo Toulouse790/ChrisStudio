@@ -1,155 +1,213 @@
-# 🎬 ChrisStudio
+# ChrisStudio
 
 Copyright (c) 2026 Christophe SENTENAC
 
-ChrisStudio is a multi-channel YouTube video automation studio for generating documentary-style videos with AI.
+Studio de production automatisee de videos YouTube style documentaire avec IA.
 
-## 📺 Channels
+## Chaines
 
 ### 1. What If...
-Hypothetical scenarios and future possibilities. Explores "what if" questions with engaging storytelling.
+Scenarios hypothetiques et possibilites futures. Explore des questions "et si..." avec un storytelling captivant.
 
 ### 2. The Human Odyssey
-History and civilization exploration. Documentary-style content about historical events and human achievements.
+Exploration de l'histoire et des civilisations. Contenu documentaire sur les evenements historiques.
 
 ### 3. Classified Files
-Mysteries and unexplained phenomena. Investigative content about unsolved cases and strange events.
+Mysteres et phenomenes inexpliques. Contenu investigatif sur les affaires non resolues.
 
-## 🚀 Quick Start
-
-### Prerequisites
+## Prerequis
 
 - Node.js 18+
-- Python 3.8+ (for Edge TTS)
-- FFmpeg
+- FFmpeg (pour le montage video)
 
-### Installation
+### Installation FFmpeg
+
+**Windows:**
+1. Telecharge: https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+2. Extrait dans `C:\ffmpeg`
+3. Ajoute `C:\ffmpeg\bin` au PATH Windows
+
+**Linux:**
+```bash
+sudo apt install ffmpeg
+```
+
+**Mac:**
+```bash
+brew install ffmpeg
+```
+
+## Installation
 
 ```bash
-# Install Node dependencies
+# Clone le repo
+git clone https://github.com/Toulouse790/youtube-creator-studio.git
+cd youtube-creator-studio
+
+# Installe les dependances
 npm install
 
-# Install Edge TTS (Python)
-pip install edge-tts
-
-# Copy environment file
+# Configure les cles API
 cp .env.example .env
-
-# Add your API keys to .env
-# OPENAI_API_KEY=your_openai_key_here
-# PEXELS_API_KEY=your_pexels_key_here
+# Edite .env avec tes cles
 ```
 
-**Get API Keys:**
-- **OpenAI**: [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-- **Pexels** (free): [https://www.pexels.com/api/](https://www.pexels.com/api/) - See [docs/PEXELS_SETUP.md](docs/PEXELS_SETUP.md)
+## Configuration (.env)
 
-### Usage
+```env
+# OpenAI (GPT-4) - Generation de scripts
+OPENAI_API_KEY=sk-...
 
-#### 🌐 Web Interface (Recommended!)
+# Pexels (gratuit) - B-roll videos/images
+PEXELS_API_KEY=...
+
+# ElevenLabs - Synthese vocale pro
+ELEVENLABS_API_KEY=...
+
+PORT=3000
+NODE_ENV=development
+```
+
+**Obtenir les cles API:**
+- **OpenAI**: https://platform.openai.com/api-keys
+- **Pexels** (gratuit): https://www.pexels.com/api/
+- **ElevenLabs**: https://elevenlabs.io/
+
+## Utilisation
+
+### Interface Web (Recommande)
+
 ```bash
-# Start the web server
-npm run server
-
-# Or with auto-reload
-npm run server:dev
+npm start
 ```
-Then open **http://localhost:3000** in your browser for a beautiful UI! ✨
 
-#### 💻 Command Line
+Ouvre **http://localhost:3000**
+
+1. Choisis ta chaine
+2. Entre un sujet
+3. Clique "Generer la video"
+4. Attends ~5-10 min
+5. Video prete dans `output/videos/`
+
+### Ligne de commande
+
 ```bash
-# Full pipeline: Generate complete video
-npm run generate:full what-if "What if AI became conscious tomorrow?"
+# Pipeline complet
+npm run generate:full what-if "Et si l'IA devenait consciente?"
 
-# Or generate script & audio only (no video)
-npm run generate what-if "What if gravity suddenly stopped?"
+# Script + audio seulement
+npm run generate what-if "Et si la gravite disparaissait?"
 
-# Test components individually
-npm run test:tts      # Test voice generation
-npm run test:assets   # Test Pexels asset collection
-npm run test:video    # Test FFmpeg video composition
-npm run voices        # List available voices
+# Tests
+npm run test:tts      # Test voix
+npm run test:assets   # Test Pexels
+npm run test:video    # Test FFmpeg
 ```
 
-## 🏗️ Architecture
+## Fonctionnalites
+
+| Fonctionnalite | Statut |
+|----------------|--------|
+| Multi-chaines (3 chaines) | OK |
+| Generation de scripts IA (GPT-4o) | OK |
+| Synthese vocale pro (ElevenLabs) | OK |
+| B-roll automatique (Pexels API) | OK |
+| Montage video (FFmpeg 1080p) | OK |
+| Structure narrative 3 actes | OK |
+| Pacing dynamique (2-12s/plan) | OK |
+| Effets visuels (8+ effets) | OK |
+| Color grading par chaine | OK |
+| Transitions fluides | OK |
+| Interface francaise | OK |
+| Interface mobile responsive | OK |
+| Musique de fond + auto-ducking | En attente d'assets |
+| Sound design (SFX) | En attente d'assets |
+| Upload YouTube | OK |
+
+## Architecture
 
 ```
 src/
 ├── config/
-│   └── channels.ts          # Channel configurations
+│   └── channels.ts              # Configuration des chaines
 ├── services/
-│   ├── script-generator.ts  # OpenAI GPT-4 for scripts
-│   ├── voice-generator.ts   # Edge TTS for narration
-│   └── video-composer.ts    # FFmpeg for video assembly
-├── tests/
-│   ├── test-edge-tts.ts
-│   └── test-ffmpeg.ts
-├── types/
-│   └── index.ts
-└── cli.ts                   # Main CLI
+│   ├── script-generator.ts      # GPT-4o (3 actes, micro-hooks)
+│   ├── voice-generator-elevenlabs.ts  # ElevenLabs TTS
+│   ├── asset-collector.ts       # Pexels API
+│   ├── video-composer.ts        # FFmpeg montage
+│   ├── visual-effects-engine.ts # 8+ effets visuels
+│   ├── dynamic-pacing-engine.ts # Pacing adaptatif
+│   ├── music-manager.ts         # Musique + auto-ducking
+│   └── sound-design-manager.ts  # SFX
+├── workflows/
+│   └── full-video-pipeline.ts   # Pipeline complet
+└── server.ts                    # Serveur Express
+
+public/
+├── index.html    # Interface (francais)
+├── styles.css    # Themes par chaine
+└── app.js        # Logique frontend
 
 output/
-├── audio/                   # Generated narrations
-├── videos/                  # Final videos
-└── scripts/                 # Generated scripts (JSON)
+├── audio/        # Narrations generees
+├── videos/       # Videos finales
+├── scripts/      # Scripts JSON
+└── meta/         # Metadonnees projets
 ```
 
-## 🎯 Features
+## Stack technique
 
-- ✅ Multi-channel support (3 channels)
-- ✅ AI-powered script generation (OpenAI GPT-4o)
-- ✅ High-quality voice synthesis (Edge TTS)
-- ✅ Automatic asset collection (Pexels API)
-- ✅ Professional video composition (FFmpeg)
-- ✅ Complete automation pipeline
-- 🚧 Automatic subtitle generation
-- 🚧 YouTube upload automation
-- 🚧 Music/soundtrack integration
-
-## 🔧 Technology Stack
-
-- **Script Generation**: GPT-4o (OpenAI)
-- **Voice**: Edge TTS (Microsoft)
+- **Scripts**: GPT-4o (OpenAI)
+- **Voix**: ElevenLabs
 - **Video**: FFmpeg
-- **Language**: TypeScript + Node.js
+- **B-roll**: Pexels API
+- **Backend**: Node.js + Express + TypeScript
+- **Frontend**: HTML/CSS/JS vanilla
 
-## 📝 Example Workflow
+## Voix par chaine
 
-### Quick Start (Full Pipeline)
-```bash
-npm run generate:full what-if "What if we could control the weather?"
+| Chaine | Voice ID ElevenLabs |
+|--------|---------------------|
+| What If | `gnPxliFHTp6OK2tcoA6i` |
+| Human Odyssey | `QIhD5ivPGEoYZQDocuHI` |
+| Classified Files | `2gPFXx8pN3Avh27Dw5Ma` |
+
+## Musique (optionnel)
+
+Pour ajouter de la musique de fond, place des fichiers MP3 dans:
+
+```
+assets/music/
+├── ambient/      # Ambiance calme
+├── epic/         # Epique/dramatique
+├── mysterious/   # Mysterieux
+└── uplifting/    # Inspirant
 ```
 
-This single command will:
-1. ✅ **Generate Script**: GPT-4o creates a 9-minute script with visual cues
-2. ✅ **Generate Audio**: Edge TTS converts script to narration
-3. ✅ **Collect Assets**: Searches and downloads images/videos from Pexels
-4. ✅ **Compose Video**: FFmpeg assembles everything with transitions
-5. 🎬 **Output**: Final MP4 video ready for YouTube!
+## SFX (optionnel)
 
-### Manual Steps (For Testing)
-```bash
-# 1. Test each component
-npm run test:tts      # Test voices
-npm run test:assets   # Test asset collection
+Pour les effets sonores:
 
-# 2. Generate script & audio only
-npm run generate what-if "Your topic here"
-
-# 3. Generate full video
-npm run generate:full what-if "Your topic here"
+```
+assets/sfx/
+├── whoosh/       # Transitions
+├── impact/       # Impacts
+├── transition/   # Changements de scene
+├── reveal/       # Revelations
+└── tension/      # Tension
 ```
 
-## 🎙️ Voice Options
+## Cout estime par video
 
-- **What If**: `en-US-GuyNeural` (Professional male)
-- **Human Odyssey**: `en-GB-RyanNeural` (British narrator)
-- **Classified Files**: `en-US-DavisNeural` (Deep mysterious)
+- **ElevenLabs**: ~0.50-1.50 EUR (10 min narration)
+- **OpenAI**: ~0.10-0.20 EUR (GPT-4o)
+- **Pexels**: Gratuit
+- **Total**: ~0.60-1.70 EUR/video
 
-## 📄 License
+## Licence
 
 MIT
 
-## 👤 Author
+## Auteur
 
 Toulouse790
