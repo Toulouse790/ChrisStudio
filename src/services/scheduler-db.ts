@@ -45,8 +45,14 @@ export class SchedulerDatabase {
   }
 
   async getVideos(): Promise<ScheduledVideo[]> {
+    // Ensure file exists before reading
+    await mkdir('./data', { recursive: true });
+    if (!existsSync(this.dbPath)) {
+      await writeFile(this.dbPath, '[]');
+    }
+
     const data = await readFile(this.dbPath, 'utf-8');
-    const parsed = JSON.parse(data) as Array<{
+    const parsed = JSON.parse(data || '[]') as Array<{
       scheduledDate: string;
       createdAt: string;
       publishedAt?: string;
@@ -97,8 +103,26 @@ export class SchedulerDatabase {
   }
 
   async getSchedules(): Promise<VideoSchedule[]> {
+    // Ensure file exists before reading
+    await mkdir('./data', { recursive: true });
+    if (!existsSync(this.schedulesPath)) {
+      // Default schedules
+      const defaultSchedules: VideoSchedule[] = [
+        { channelId: 'what-if', weekday: 1, time: '10:00', enabled: true },
+        { channelId: 'what-if', weekday: 3, time: '10:00', enabled: true },
+        { channelId: 'what-if', weekday: 5, time: '10:00', enabled: true },
+        { channelId: 'human-odyssey', weekday: 2, time: '14:00', enabled: true },
+        { channelId: 'human-odyssey', weekday: 4, time: '14:00', enabled: true },
+        { channelId: 'human-odyssey', weekday: 6, time: '14:00', enabled: true },
+        { channelId: 'classified-files', weekday: 1, time: '18:00', enabled: true },
+        { channelId: 'classified-files', weekday: 3, time: '18:00', enabled: true },
+        { channelId: 'classified-files', weekday: 5, time: '18:00', enabled: true },
+      ];
+      await writeFile(this.schedulesPath, JSON.stringify(defaultSchedules, null, 2));
+    }
+
     const data = await readFile(this.schedulesPath, 'utf-8');
-    return JSON.parse(data);
+    return JSON.parse(data || '[]');
   }
 
   async saveSchedules(schedules: VideoSchedule[]): Promise<void> {
