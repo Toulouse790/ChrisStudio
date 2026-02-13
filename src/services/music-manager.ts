@@ -2,10 +2,10 @@ import { readdir, stat } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { promisify } from 'util';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import logger from '../utils/logger.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export type MusicMood = 'epic' | 'mysterious' | 'orchestral' | 'ambient' | 'transitions';
 
@@ -101,8 +101,9 @@ export class MusicManager {
   }
 
   private async probeDuration(filePath: string): Promise<number> {
-    const { stdout } = await execAsync(
-      `ffprobe -i "${filePath}" -show_entries format=duration -v quiet -of csv="p=0"`
+    const { stdout } = await execFileAsync(
+      'ffprobe',
+      ['-i', filePath, '-show_entries', 'format=duration', '-v', 'quiet', '-of', 'csv=p=0']
     );
     const duration = parseFloat(stdout.trim());
     if (!Number.isFinite(duration) || duration <= 0) {

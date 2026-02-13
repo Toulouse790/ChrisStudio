@@ -3,11 +3,32 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import logger from '../utils/logger.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret === 'change-this-secret-in-production') {
+    if (isAuthEnabled()) {
+      throw new Error(
+        'FATAL: JWT_SECRET is not set or is using the default value. ' +
+        'Set a strong random secret (at least 32 characters) in your .env file.'
+      );
+    }
+    // Auth disabled: use a random ephemeral secret so tokens still work for the session
+    return `ephemeral-${Date.now()}-${Math.random()}`;
+  }
+  if (secret.length < 32) {
+    logger.warn('JWT_SECRET is shorter than 32 characters. Use a stronger secret in production.');
+  }
+  return secret;
+}
+
 const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '24h';
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '';
+
+/** Read ADMIN_PASSWORD_HASH dynamically so env changes are picked up. */
+function getAdminPasswordHash(): string {
+  return process.env.ADMIN_PASSWORD_HASH || '';
+}
 
 export interface AuthUser {
   username: string;
@@ -19,12 +40,12 @@ export interface AuthRequest extends Request {
 }
 
 export const generateToken = (user: AuthUser): string => {
-  return jwt.sign(user, JWT_SECRET, { expiresIn: JWT_EXPIRATION as jwt.SignOptions['expiresIn'] });
+  return jwt.sign(user, getJwtSecret(), { expiresIn: JWT_EXPIRATION as jwt.SignOptions['expiresIn'] });
 };
 
 export const verifyToken = (token: string): AuthUser | null => {
   try {
-    return jwt.verify(token, JWT_SECRET) as AuthUser;
+    return jwt.verify(token, getJwtSecret()) as AuthUser;
   } catch {
     return null;
   }
@@ -88,12 +109,13 @@ export const adminOnlyMiddleware = (req: AuthRequest, res: Response, next: NextF
 };
 
 export const isAuthEnabled = (): boolean => {
-  return process.env.AUTH_ENABLED === 'true' && !!ADMIN_PASSWORD_HASH;
+  return process.env.AUTH_ENABLED === 'true' && !!getAdminPasswordHash();
 };
 
 export const authenticateUser = async (username: string, password: string): Promise<AuthUser | null> => {
-  if (username === ADMIN_USERNAME && ADMIN_PASSWORD_HASH) {
-    const valid = await verifyPassword(password, ADMIN_PASSWORD_HASH);
+  const hash = getAdminPasswordHash();
+  if (username === ADMIN_USERNAME && hash) {
+    const valid = await verifyPassword(password, hash);
     if (valid) {
       return { username, role: 'admin' };
     }

@@ -2,11 +2,11 @@ import { mkdir, readFile, writeFile, rename } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { exec } from 'child_process';
 import { Asset, AssetCategory } from '../types/index.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export interface AssetLibraryEntry {
   id: string;
@@ -437,8 +437,9 @@ export class AssetLibrary {
 
   private async probeDurationSeconds(mediaPath: string): Promise<number | undefined> {
     try {
-      const { stdout } = await execAsync(
-        `ffprobe -i "${mediaPath}" -show_entries format=duration -v quiet -of csv="p=0"`
+      const { stdout } = await execFileAsync(
+        'ffprobe',
+        ['-i', mediaPath, '-show_entries', 'format=duration', '-v', 'quiet', '-of', 'csv=p=0']
       );
       const value = parseFloat(stdout.trim());
       return Number.isFinite(value) && value > 0 ? value : undefined;

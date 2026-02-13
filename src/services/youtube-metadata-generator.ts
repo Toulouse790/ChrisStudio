@@ -20,7 +20,10 @@ export class YouTubeMetadataGenerator {
   private client: OpenAI;
 
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY || 'dummy-key-for-testing';
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY environment variable is required');
+    }
     this.client = new OpenAI({ apiKey });
   }
 
@@ -250,10 +253,9 @@ Return as JSON:
   }
 
   // Get related search queries (simulate YouTube autocomplete)
+  // TODO: In production, use YouTube Data API or Google Autocomplete API
   async getRelatedSearches(topic: string): Promise<string[]> {
-    // In production, use YouTube Data API or Google Autocomplete API
-    // For now, generate common search patterns
-
+    console.warn('⚠️ getRelatedSearches: returning mock data — integrate YouTube Data API for real results');
     const patterns = [
       `${topic} explained`,
       `${topic} documentary`,
@@ -271,13 +273,13 @@ Return as JSON:
   }
 
   // Analyze competitor videos
+  // TODO: In production, use YouTube Data API to analyze top videos
   async analyzeCompetitors(keyword: string): Promise<{
     averageViews: number;
     commonTags: string[];
     successfulTitles: string[];
   }> {
-    // In production, use YouTube Data API to analyze top videos
-    // For now, return mock data
+    console.warn('⚠️ analyzeCompetitors: returning mock data — integrate YouTube Data API for real results');
 
     return {
       averageViews: 150000,

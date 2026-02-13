@@ -89,12 +89,16 @@ export class VisualEffectsEngine {
 
     // Avoid repeating the same effect
     let selectedEffect: VisualEffect;
-    const rng = seed !== undefined ? this.seededRandom(seed + this.effectIndex) : Math.random();
+    let attempt = 0;
 
     do {
+      const rng = seed !== undefined
+        ? this.seededRandom(seed + this.effectIndex + attempt)
+        : Math.random();
       const idx = Math.floor(rng * effects.length);
       selectedEffect = effects[idx];
-    } while (selectedEffect === this.lastEffect && effects.length > 1);
+      attempt++;
+    } while (selectedEffect === this.lastEffect && effects.length > 1 && attempt < 10);
 
     this.lastEffect = selectedEffect;
     this.effectIndex++;

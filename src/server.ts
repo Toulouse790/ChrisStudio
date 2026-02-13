@@ -82,6 +82,11 @@ app.use((req, _res, next) => {
   next();
 });
 
+// ─── Health endpoint (unauthenticated) ─────────────────────────────
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
 app.post('/api/auth/login', authRateLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -198,28 +203,26 @@ app.post('/api/generate', authMiddleware, generateRateLimiter, validateBody(gene
 
   const socketRoom = `job-${jobId}`;
 
+  const pipeline = new FullVideoPipeline();
+
+  const logToSocket = (message: string) => {
+    logger.debug({ jobId, message }, 'Pipeline progress');
+    io.to(socketRoom).emit('progress', { message });
+  };
+
+  io.to(socketRoom).emit('progress', {
+    step: 'started',
+    message: `Starting generation for: ${topic}`
+  });
+
+  const originalLog = console.log;
+  console.log = (...args: unknown[]) => {
+    originalLog(...args);
+    logToSocket(args.map(String).join(' '));
+  };
+
   try {
-    const pipeline = new FullVideoPipeline();
-
-    const logToSocket = (message: string) => {
-      logger.debug({ jobId, message }, 'Pipeline progress');
-      io.to(socketRoom).emit('progress', { message });
-    };
-
-    io.to(socketRoom).emit('progress', {
-      step: 'started',
-      message: `Starting generation for: ${topic}`
-    });
-
-    const originalLog = console.log;
-    console.log = (...args: unknown[]) => {
-      originalLog(...args);
-      logToSocket(args.map(String).join(' '));
-    };
-
     const videoPath = await pipeline.generateVideo(channel, topic, projectId);
-
-    console.log = originalLog;
 
     const scriptPath = `./output/scripts/${projectId}.json`;
     const audioPath = `./output/audio/${projectId}.mp3`;
@@ -241,6 +244,8 @@ app.post('/api/generate', authMiddleware, generateRateLimiter, validateBody(gene
       jobId,
       error: err.message
     });
+  } finally {
+    console.log = originalLog;
   }
 });
 
@@ -802,5 +807,23 @@ httpServer.listen(PORT, async () => {
   logger.info('ChrisStudio ready');
   console.log('\n Ready to create videos!\n');
 });
+
+// ─── Graceful shutdown ──────────────────────────────────────────────
+function shutdown(signal: string) {
+  logger.info({ signal }, 'Shutdown signal received, closing…');
+  scheduler.stop();
+  httpServer.close(() => {
+    logger.info('HTTP server closed');
+    process.exit(0);
+  });
+  // Force exit after 10 s if connections are still open
+  setTimeout(() => {
+    logger.warn('Forceful shutdown after timeout');
+    process.exit(1);
+  }, 10_000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 export default app;

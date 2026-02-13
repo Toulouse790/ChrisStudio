@@ -1,12 +1,12 @@
 import { promisify } from 'util';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { channels } from '../config/channels.js';
 import { VideoScript } from '../types/index.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export type PrepublishActionKind =
   | 'regen_assets'
@@ -241,8 +241,9 @@ export class PrepublishValidator {
   }
 
   private async probeDurationSeconds(mediaPath: string): Promise<number> {
-    const { stdout } = await execAsync(
-      `ffprobe -i "${mediaPath}" -show_entries format=duration -v quiet -of csv="p=0"`
+    const { stdout } = await execFileAsync(
+      'ffprobe',
+      ['-i', mediaPath, '-show_entries', 'format=duration', '-v', 'quiet', '-of', 'csv=p=0']
     );
     const value = parseFloat(String(stdout || '').trim());
     if (!Number.isFinite(value) || value <= 0) {

@@ -76,7 +76,38 @@ export class AssetDownloader {
     return downloadedAssets;
   }
 
+  /** Reject URLs targeting private/internal networks or non-HTTP(S) schemes. */
+  private validateUrl(url: string): void {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new Error(`Invalid URL: ${url}`);
+    }
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      throw new Error(`Disallowed URL scheme: ${parsed.protocol}`);
+    }
+    const host = parsed.hostname;
+    // Block private/loopback IPs
+    const blocked = [
+      /^127\./,
+      /^10\./,
+      /^172\.(1[6-9]|2\d|3[01])\./,
+      /^192\.168\./,
+      /^169\.254\./,
+      /^0\./,
+      /^::1$/,
+      /^localhost$/i,
+      /^\[::1\]$/
+    ];
+    if (blocked.some((re) => re.test(host))) {
+      throw new Error(`URL targets a private/internal address: ${host}`);
+    }
+  }
+
   private async downloadFile(url: string, type: string, index: number): Promise<string> {
+    this.validateUrl(url);
+
     const extension = type === 'video' ? 'mp4' : 'jpg';
     const filename = `${type}-${index}-${Date.now()}.${extension}`;
     const filepath = path.join(this.outputDir, filename);
@@ -86,6 +117,7 @@ export class AssetDownloader {
       url,
       responseType: 'stream',
       timeout: 60000, // 60 seconds timeout
+      maxRedirects: 3,
       headers: {
         'User-Agent': 'ChrisStudio/1.0'
       }

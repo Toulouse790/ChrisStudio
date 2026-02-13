@@ -1,0 +1,15 @@
+node_modules
+dist
+coverage
+.git
+.env
+*.md
+*.test.ts
+tests/
+__tests__/
+examples/
+docs/
+assets/
+output/
+data/
+.github/

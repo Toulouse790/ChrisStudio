@@ -47,19 +47,28 @@ export const youtubeUploadSchema = z.object({
   }).optional()
 });
 
+/** Reject path-traversal patterns in video path inputs. */
+const safeVideoPath = z
+  .string()
+  .min(1, 'videoPath is required')
+  .max(500)
+  .refine((v) => !v.includes('..') && !v.includes('\\'), {
+    message: 'videoPath must not contain ".." or backslashes'
+  });
+
 export const youtubePublishSchema = z.object({
-  videoPath: z.string().min(1, 'videoPath is required'),
+  videoPath: safeVideoPath,
   metadata: z.object({
     title: z.string().min(1).max(100).optional(),
     description: z.string().max(5000).optional(),
-    tags: z.array(z.string().max(30)).max(500).optional(),
+    tags: z.array(z.string().max(30)).max(30).optional(),
     categoryId: z.string().optional(),
     privacyStatus: z.enum(['private', 'unlisted', 'public']).optional()
   }).optional()
 });
 
 export const prepublishValidateSchema = z.object({
-  videoPath: z.string().min(1, 'videoPath is required'),
+  videoPath: safeVideoPath,
   metadata: z.object({
     title: z.string().max(100).optional(),
     description: z.string().max(5000).optional(),
@@ -68,7 +77,7 @@ export const prepublishValidateSchema = z.object({
 });
 
 export const regenerateAssetsSchema = z.object({
-  videoPath: z.string().min(1, 'videoPath is required'),
+  videoPath: safeVideoPath,
   forceImagesOnly: z.boolean().optional(),
   minClips: z.number().int().min(0).max(100).optional()
 });
@@ -82,7 +91,7 @@ export const filenameParamSchema = z.object({
     .string()
     .min(1, 'filename is required')
     .max(255)
-    .refine((val) => !val.includes('..') && !val.includes('/'), {
+    .refine((val) => !val.includes('..') && !val.includes('/') && !val.includes('\\'), {
       message: 'Invalid filename'
     })
 });

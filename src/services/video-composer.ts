@@ -3,7 +3,7 @@ import { Asset, Channel, VideoScript } from '../types/index.js';
 import { mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { promisify } from 'util';
-import { exec, spawn } from 'child_process';
+import { execFile, spawn } from 'child_process';
 import { VisualEffectsEngine, VisualEffect, ColorGrade, TransitionType } from './visual-effects-engine.js';
 import { MusicManager } from './music-manager.js';
 import { SoundDesignManager, SFXCue } from './sound-design-manager.js';
@@ -11,7 +11,7 @@ import { DynamicPacingEngine, ShotTiming, PacingContext } from './dynamic-pacing
 import { ContentType, EmotionalTone, EnhancedSection, EnhancedVideoScript } from './script-generator.js';
 import logger from '../utils/logger.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export interface ComposeOptions {
   channel?: Channel;
@@ -549,8 +549,9 @@ export class VideoComposer {
   }
 
   private async getAudioDurationStrict(audioPath: string): Promise<number> {
-    const { stdout } = await execAsync(
-      `ffprobe -i "${audioPath}" -show_entries format=duration -v quiet -of csv="p=0"`
+    const { stdout } = await execFileAsync(
+      'ffprobe',
+      ['-i', audioPath, '-show_entries', 'format=duration', '-v', 'quiet', '-of', 'csv=p=0']
     );
     const value = parseFloat(stdout.trim());
     if (!Number.isFinite(value) || value <= 0) {
@@ -561,8 +562,9 @@ export class VideoComposer {
 
   private async getMediaDurationSeconds(filePath: string): Promise<number> {
     try {
-      const { stdout } = await execAsync(
-        `ffprobe -i "${filePath}" -show_entries format=duration -v quiet -of csv="p=0"`
+      const { stdout } = await execFileAsync(
+        'ffprobe',
+        ['-i', filePath, '-show_entries', 'format=duration', '-v', 'quiet', '-of', 'csv=p=0']
       );
       const value = parseFloat(stdout.trim());
       return Number.isFinite(value) ? value : NaN;
@@ -574,9 +576,11 @@ export class VideoComposer {
   private escapeDrawtext(text: string): string {
     return text
       .replace(/\\/g, '\\\\')
+      .replace(/%/g, '%%')
       .replace(/:/g, '\\:')
-      .replace(/'/g, "\\'")
-      .replace(/\n/g, ' ');
+      .replace(/'/g, "\\'") 
+      .replace(/\{/g, '\\{')
+      .replace(/\}/g, '\\}');
   }
 
   private mapContentTypeToSFXType(contentType?: ContentType): 'hook' | 'section' | 'reveal' | 'conclusion' {

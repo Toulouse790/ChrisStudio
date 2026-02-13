@@ -49,7 +49,9 @@ export class VideoScheduler {
       // Check if it's time to generate this video
       if (video.scheduledDate <= now) {
         console.log(`🎬 Starting scheduled generation: ${video.topic}`);
-        this.generateScheduledVideo(video);
+        this.generateScheduledVideo(video).catch((err) => {
+          logger.error({ videoId: video.id, error: (err as Error).message }, 'Unhandled error in scheduled generation');
+        });
       }
     }
   }

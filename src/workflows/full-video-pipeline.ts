@@ -7,10 +7,10 @@ import { VideoComposer, ComposeOptions } from '../services/video-composer.js';
 import { Channel, VisualRequest, VideoScript } from '../types/index.js';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { promisify } from 'util';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import logger from '../utils/logger.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export class FullVideoPipeline {
   private scriptGenerator: ScriptGenerator;
@@ -351,8 +351,9 @@ export class FullVideoPipeline {
   }
 
   private async probeDurationSeconds(mediaPath: string): Promise<number> {
-    const { stdout } = await execAsync(
-      `ffprobe -i "${mediaPath}" -show_entries format=duration -v quiet -of csv="p=0"`
+    const { stdout } = await execFileAsync(
+      'ffprobe',
+      ['-i', mediaPath, '-show_entries', 'format=duration', '-v', 'quiet', '-of', 'csv=p=0']
     );
     const value = parseFloat(stdout.trim());
     if (!Number.isFinite(value) || value <= 0) {

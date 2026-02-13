@@ -2,6 +2,24 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
 import logger from '../utils/logger.js';
 
+/** Strip HTML tags from a string to prevent stored XSS. */
+function sanitizeString(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return value.replace(/<[^>]*>/g, '').trim();
+  }
+  if (Array.isArray(value)) {
+    return value.map(sanitizeString);
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      out[k] = sanitizeString(v);
+    }
+    return out;
+  }
+  return value;
+}
+
 export interface ValidationErrorResponse {
   error: 'Validation failed';
   details: Array<{
@@ -23,6 +41,7 @@ const formatZodError = (error: ZodError): ValidationErrorResponse => {
 export const validateBody = <T>(schema: ZodSchema<T>) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
+      req.body = sanitizeString(req.body);
       req.body = schema.parse(req.body);
       next();
     } catch (error) {

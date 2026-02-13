@@ -181,7 +181,7 @@ function showToast(message, type = 'info') {
     toast.innerHTML = `
         <div style="display: flex; align-items: center; gap: 0.5rem;">
             <span style="font-size: 1.25rem;">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
-            <div>${message}</div>
+            <div>${escapeHtml(message)}</div>
         </div>
     `;
     document.body.appendChild(toast);
@@ -398,8 +398,9 @@ function updateProgressSteps(step, status) {
 
 function showResult(data) {
     resultCard.style.display = 'block';
+    const safeFilename = escapeHtml(data.videoPath?.split('/').pop() || 'video.mp4');
     resultInfo.innerHTML = `
-        <p><strong>🎬 Fichier :</strong> ${data.videoPath?.split('/').pop() || 'video.mp4'}</p>
+        <p><strong>🎬 Fichier :</strong> ${safeFilename}</p>
         <p><strong>📊 Qualité :</strong> 1080p, 30fps</p>
     `;
 
@@ -807,9 +808,9 @@ async function loadHistory() {
                         <span>📅 ${date.toLocaleDateString('fr-FR')}</span>
                     </div>
                     <div class="history-actions">
-                        ${item.hasVideo ? `<a href="/api/download/video/${item.videoPath.split('/').pop()}" download class="action-link">🎬 Vidéo</a>` : ''}
-                        ${item.hasAudio ? `<a href="${item.audioPath}" target="_blank" class="action-link">🎵 Audio</a>` : ''}
-                        <a href="${item.scriptPath}" target="_blank" class="action-link">📄 Script</a>
+                        ${item.hasVideo ? `<a href="/api/download/video/${encodeURIComponent(item.videoPath.split('/').pop())}" download class="action-link">🎬 Vidéo</a>` : ''}
+                        ${item.hasAudio ? `<a href="${escapeHtml(item.audioPath)}" target="_blank" class="action-link">🎵 Audio</a>` : ''}
+                        <a href="${escapeHtml(item.scriptPath)}" target="_blank" class="action-link">📄 Script</a>
                     </div>
                 </div>
             `;

@@ -14,7 +14,10 @@ export class TopicGenerator {
   private client: OpenAI;
 
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY || 'dummy-key-for-testing';
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY environment variable is required');
+    }
     this.client = new OpenAI({ apiKey });
   }
 

@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/68</span>
+                <span class='fraction'>0/57</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/68</span>
+                <span class='fraction'>0/57</span>
             </div>
         
             
@@ -126,31 +126,10 @@
 <a name='L61'></a><a href='#L61'>61</a>
 <a name='L62'></a><a href='#L62'>62</a>
 <a name='L63'></a><a href='#L63'>63</a>
-<a name='L64'></a><a href='#L64'>64</a>
-<a name='L65'></a><a href='#L65'>65</a>
-<a name='L66'></a><a href='#L66'>66</a>
-<a name='L67'></a><a href='#L67'>67</a>
-<a name='L68'></a><a href='#L68'>68</a>
-<a name='L69'></a><a href='#L69'>69</a>
-<a name='L70'></a><a href='#L70'>70</a>
-<a name='L71'></a><a href='#L71'>71</a>
-<a name='L72'></a><a href='#L72'>72</a>
-<a name='L73'></a><a href='#L73'>73</a>
-<a name='L74'></a><a href='#L74'>74</a>
-<a name='L75'></a><a href='#L75'>75</a>
-<a name='L76'></a><a href='#L76'>76</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L64'></a><a href='#L64'>64</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -180,7 +159,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -196,9 +174,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -217,22 +193,13 @@
 import { Request, Response } from 'express';
 import logger from '../utils/logger.js';
 &nbsp;
-<span class="cstat-no" title="statement not covered" >const getClientIp = (req: Request): string =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  const forwarded = req.headers['x-forwarded-for'];</span>
-<span class="cstat-no" title="statement not covered" >  if (typeof forwarded === 'string') {</span>
-<span class="cstat-no" title="statement not covered" >    return forwarded.split(',')[0].trim();</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
-<span class="cstat-no" title="statement not covered" >  return req.ip || req.socket.remoteAddress || 'unknown';</span>
-<span class="cstat-no" title="statement not covered" >};</span>
-&nbsp;
 <span class="cstat-no" title="statement not covered" >export const globalRateLimiter = rateLimit({</span>
 <span class="cstat-no" title="statement not covered" >  windowMs: 15 * 60 * 1000, // 15 minutes</span>
 <span class="cstat-no" title="statement not covered" >  max: 100, // 100 requests per 15 minutes</span>
 <span class="cstat-no" title="statement not covered" >  standardHeaders: true,</span>
 <span class="cstat-no" title="statement not covered" >  legacyHeaders: false,</span>
-<span class="cstat-no" title="statement not covered" >  keyGenerator: getClientIp,</span>
 <span class="cstat-no" title="statement not covered" >  handler: (req: Request, res: Response) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    logger.warn({ ip: getClientIp(req), path: req.path }, 'Rate limit exceeded');</span>
+<span class="cstat-no" title="statement not covered" >    logger.warn({ ip: req.ip, path: req.path }, 'Rate limit exceeded');</span>
 <span class="cstat-no" title="statement not covered" >    res.status(429).json({</span>
 <span class="cstat-no" title="statement not covered" >      error: 'Too many requests',</span>
 <span class="cstat-no" title="statement not covered" >      message: 'Please try again later',</span>
@@ -246,9 +213,8 @@ import logger from '../utils/logger.js';
 <span class="cstat-no" title="statement not covered" >  max: 10, // 10 video generations per hour</span>
 <span class="cstat-no" title="statement not covered" >  standardHeaders: true,</span>
 <span class="cstat-no" title="statement not covered" >  legacyHeaders: false,</span>
-<span class="cstat-no" title="statement not covered" >  keyGenerator: getClientIp,</span>
 <span class="cstat-no" title="statement not covered" >  handler: (req: Request, res: Response) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    logger.warn({ ip: getClientIp(req) }, 'Generate rate limit exceeded');</span>
+<span class="cstat-no" title="statement not covered" >    logger.warn({ ip: req.ip }, 'Generate rate limit exceeded');</span>
 <span class="cstat-no" title="statement not covered" >    res.status(429).json({</span>
 <span class="cstat-no" title="statement not covered" >      error: 'Too many generation requests',</span>
 <span class="cstat-no" title="statement not covered" >      message: 'Video generation is limited to 10 per hour',</span>
@@ -262,9 +228,8 @@ import logger from '../utils/logger.js';
 <span class="cstat-no" title="statement not covered" >  max: 20, // 20 uploads per hour</span>
 <span class="cstat-no" title="statement not covered" >  standardHeaders: true,</span>
 <span class="cstat-no" title="statement not covered" >  legacyHeaders: false,</span>
-<span class="cstat-no" title="statement not covered" >  keyGenerator: getClientIp,</span>
 <span class="cstat-no" title="statement not covered" >  handler: (req: Request, res: Response) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    logger.warn({ ip: getClientIp(req) }, 'Upload rate limit exceeded');</span>
+<span class="cstat-no" title="statement not covered" >    logger.warn({ ip: req.ip }, 'Upload rate limit exceeded');</span>
 <span class="cstat-no" title="statement not covered" >    res.status(429).json({</span>
 <span class="cstat-no" title="statement not covered" >      error: 'Too many upload requests',</span>
 <span class="cstat-no" title="statement not covered" >      message: 'YouTube uploads are limited to 20 per hour',</span>
@@ -278,9 +243,8 @@ import logger from '../utils/logger.js';
 <span class="cstat-no" title="statement not covered" >  max: 5, // 5 login attempts per 15 minutes</span>
 <span class="cstat-no" title="statement not covered" >  standardHeaders: true,</span>
 <span class="cstat-no" title="statement not covered" >  legacyHeaders: false,</span>
-<span class="cstat-no" title="statement not covered" >  keyGenerator: getClientIp,</span>
 <span class="cstat-no" title="statement not covered" >  handler: (req: Request, res: Response) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    logger.warn({ ip: getClientIp(req) }, 'Auth rate limit exceeded');</span>
+<span class="cstat-no" title="statement not covered" >    logger.warn({ ip: req.ip }, 'Auth rate limit exceeded');</span>
 <span class="cstat-no" title="statement not covered" >    res.status(429).json({</span>
 <span class="cstat-no" title="statement not covered" >      error: 'Too many login attempts',</span>
 <span class="cstat-no" title="statement not covered" >      message: 'Please try again in 15 minutes',</span>
@@ -295,7 +259,7 @@ import logger from '../utils/logger.js';
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-03T06:04:37.689Z
+                at 2026-02-13T13:30:02.122Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
