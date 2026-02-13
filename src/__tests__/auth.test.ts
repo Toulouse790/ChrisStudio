@@ -4,6 +4,8 @@ import { generateToken, verifyToken, hashPassword, verifyPassword, isAuthEnabled
 describe('Authentication', () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
+    // Provide a strong JWT secret for token tests
+    vi.stubEnv('JWT_SECRET', 'test-secret-that-is-at-least-32-characters-long!');
   });
 
   describe('generateToken and verifyToken', () => {
